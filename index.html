@@ -1,0 +1,4045 @@
+<!DOCTYPE html>
+<html lang="ja" class="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ダーツ点数計算システム</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+
+<script>
+tailwind.config = {
+    darkMode: 'class',
+    theme: {
+        extend: {
+            colors: {
+                earth: {
+                    900: '#1c1917',
+                    800: '#292524',
+                    700: '#44403c',
+                    600: '#57534e',
+                    500: '#78716c',
+                    green: '#3f4f44',
+                    beige: '#d3c5b4',
+                    accent: '#8c6d53',
+                    rust: '#a8583b'
+                }
+            }
+        }
+    }
+}
+</script>
+
+<style>
+body {
+    background-color: #0c0a09;
+    color: #f5f5f4;
+}
+
+@keyframes fastRipple {
+    0% {
+        transform: scale(0.2);
+        opacity: 1;
+        border-color: rgba(255,255,255,0.9);
+        background-color: rgba(239,68,68,0.6);
+    }
+
+    50% {
+        border-color: rgba(239,68,68,0.8);
+        background-color: rgba(255,255,255,0.3);
+    }
+
+    100% {
+        transform: scale(2.6);
+        opacity: 0;
+        border-color: rgba(255,255,255,0);
+        background-color: rgba(239,68,68,0);
+    }
+}
+
+.fast-ripple-effect {
+    animation: fastRipple 0.45s cubic-bezier(0.1,0.9,0.2,1) forwards;
+}
+
+@keyframes colorfulRipple {
+    0% {
+        transform: scale(0.2);
+        opacity: 1;
+        border-color: rgba(250,204,21,0.9);
+        background-color: rgba(236,72,153,0.7);
+    }
+
+    50% {
+        border-color: rgba(59,130,246,0.9);
+        background-color: rgba(34,197,94,0.6);
+    }
+
+    100% {
+        transform: scale(3);
+        opacity: 0;
+        border-color: rgba(168,85,247,0);
+        background-color: rgba(239,68,68,0);
+    }
+}
+
+.colorful-ripple-effect {
+    animation: colorfulRipple 0.6s cubic-bezier(0.1,0.9,0.2,1) forwards;
+}
+
+@keyframes scorePopup {
+    0% {
+        transform: translateY(0) scale(0.8);
+        opacity: 1;
+    }
+
+    70% {
+        transform: translateY(-40px) scale(1.3);
+        opacity: 0.9;
+    }
+
+    100% {
+        transform: translateY(-60px) scale(1.2);
+        opacity: 0;
+    }
+}
+
+.score-popup-effect {
+    animation: scorePopup 0.7s ease-out forwards;
+}
+
+@keyframes turnChangeAnim {
+    0% {
+        transform: scale(0.7);
+        opacity: 0;
+    }
+
+    20% {
+        transform: scale(1.05);
+        opacity: 1;
+    }
+
+    80% {
+        transform: scale(1);
+        opacity: 1;
+    }
+
+    100% {
+        transform: scale(1.1);
+        opacity: 0;
+    }
+}
+
+.turn-change-banner {
+    animation: turnChangeAnim 0.7s ease-in-out forwards;
+}
+</style>
+</head>
+
+<body class="min-h-screen flex flex-col justify-between select-none">
+
+<!-- =========================================================
+     Header
+========================================================= -->
+
+<header class="p-4 border-b border-earth-800 bg-earth-900 flex justify-between items-center shadow-md">
+
+    <h1 class="text-xl font-bold tracking-wider flex items-center gap-2">
+        <span class="w-3 h-3 rounded-full bg-earth-rust inline-block"></span>
+        DARTS SCORE TRACKER
+    </h1>
+
+    <div class="flex gap-2 items-center">
+
+        <button
+            onclick="openSettingsModal()"
+            class="px-3 py-1.5 bg-earth-800 hover:bg-earth-700 text-xs rounded transition border border-earth-700">
+            ⚙️ 設定
+        </button>
+
+        <button
+            onclick="openModeModal()"
+            id="modeBtn"
+            class="px-3 py-1.5 bg-earth-rust text-white text-xs font-bold rounded transition border border-earth-700">
+            📱 モード設定
+        </button>
+
+        <button
+            onclick="openSoundSettings()"
+            class="px-3 py-1.5 bg-earth-800 hover:bg-earth-700 text-xs rounded transition border border-earth-700">
+            🔊 サウンド
+        </button>
+
+        <button
+            onclick="resetGame()"
+            class="px-3 py-1.5 bg-earth-800 hover:bg-earth-700 text-xs rounded transition border border-earth-700">
+            リセット
+        </button>
+
+    </div>
+
+</header>
+
+
+<!-- =========================================================
+     Main
+========================================================= -->
+
+<main class="flex-1 p-4 grid grid-cols-1 lg:grid-cols-12 gap-6 max-w-7xl mx-auto w-full items-center">
+
+    <!-- =====================================================
+         Dartboard
+    ====================================================== -->
+
+    <section
+        id="boardSection"
+        class="lg:col-span-7 flex flex-col items-center justify-center bg-earth-900/60 p-6 rounded-2xl border border-earth-800 shadow-xl relative">
+
+        <div class="w-full max-w-[540px] flex justify-between items-center mb-3">
+
+            <div class="bg-black/60 backdrop-blur-md border border-earth-700 px-4 py-2 rounded-2xl shadow-xl flex items-center gap-1.5 z-20">
+
+                <span class="text-xs text-earth-beige tracking-wider font-semibold">
+                    残りターン:
+                </span>
+
+                <span
+                    id="turnRemainingBadge"
+                    class="text-xl font-black text-amber-400 tracking-tight">
+                    8 / 8
+                </span>
+
+            </div>
+
+
+            <div class="bg-black/60 backdrop-blur-md border border-earth-700 px-4 py-2 rounded-2xl shadow-xl flex items-center gap-1.5 z-20">
+
+                <span class="text-xs text-earth-beige tracking-wider font-semibold">
+                    残り投球:
+                </span>
+
+                <span
+                    id="throwCountBadge"
+                    class="text-4xl font-black text-white tracking-tight">
+                    3
+                </span>
+
+            </div>
+
+        </div>
+
+
+        <div
+            id="inputControls"
+            class="w-full max-w-[540px] flex justify-between items-center mb-4">
+
+            <button
+                onclick="recordMiss()"
+                class="px-4 py-2 bg-earth-800 hover:bg-earth-700 border border-earth-700 text-earth-beige hover:text-white text-xs font-bold rounded-xl transition shadow flex items-center gap-1.5">
+                ❌ ミス (0点)
+            </button>
+
+            <button
+                onclick="undoLastScore()"
+                id="undoBtn"
+                class="px-3 py-1.5 bg-earth-700 hover:bg-earth-600 text-xs rounded flex items-center gap-1 transition shadow disabled:opacity-40 disabled:cursor-not-allowed">
+                ↩ 入力をやり直す
+            </button>
+
+        </div>
+
+
+        <!--
+            ダーツボード
+
+            ここだけ今回の新しいボード方式。
+            canvasで描画し、クリック座標もこのcanvas基準で管理。
+        -->
+
+        <div
+            id="canvasContainer"
+            class="relative w-full max-w-[540px] aspect-square flex items-center justify-center">
+
+            <canvas
+                id="dartboard"
+                class="w-full h-full cursor-pointer rounded-full shadow-2xl border-4 border-earth-800">
+            </canvas>
+
+
+            <div
+                id="turnChangeOverlay"
+                class="fixed inset-0 flex items-center justify-center pointer-events-none z-50 hidden bg-black/40 backdrop-blur-sm">
+
+                <div
+                    id="turnChangeBannerText"
+                    class="text-white font-black text-6xl tracking-widest turn-change-banner uppercase drop-shadow-[0_4px_16px_rgba(0,0,0,0.9)]">
+                    Player Change
+                </div>
+
+            </div>
+
+
+            <div
+                id="effectOverlay"
+                class="absolute inset-0 pointer-events-none overflow-hidden rounded-full z-30">
+            </div>
+
+        </div>
+
+
+        <p
+            id="boardGuideText"
+            class="text-xs text-earth-500 mt-4 text-center">
+            ボード上をタップすると得点が入ります（3投で次のプレイヤーへ交代）。
+        </p>
+
+    </section>
+
+
+    <!-- =====================================================
+         Score Section
+    ====================================================== -->
+
+    <section
+        id="scoreSection"
+        class="lg:col-span-5 flex flex-col bg-earth-900/80 p-5 rounded-2xl border border-earth-800 shadow-xl h-full min-h-[500px]">
+
+        <div
+            id="playerAddHeader"
+            class="flex justify-between items-center mb-4 pb-3 border-b border-earth-800">
+
+            <span
+                id="modeDisplayLabel"
+                class="text-xs text-amber-400 font-bold bg-amber-500/20 px-2.5 py-1 rounded-lg">
+                ch: default | モード: シングル
+            </span>
+
+            <div class="flex gap-2">
+
+                <button
+                    onclick="resetScoresOnly()"
+                    class="px-3 py-1.5 bg-earth-800 hover:bg-earth-700 text-earth-beige hover:text-white text-xs font-bold rounded transition border border-earth-700 shadow">
+                    🔄 得点リセット
+                </button>
+
+                <button
+                    onclick="addPlayer()"
+                    class="px-3 py-1.5 bg-earth-beige text-earth-900 hover:bg-white text-xs font-bold rounded transition shadow">
+                    + プレイヤー追加
+                </button>
+
+            </div>
+
+        </div>
+
+
+        <div
+            id="playersList"
+            class="flex-1 overflow-y-auto space-y-3 pr-1">
+        </div>
+
+
+        <div
+            class="mt-4 pt-3 border-t border-earth-800 flex justify-between items-center text-xs text-earth-500">
+
+            <span id="ruleIndicator">
+                ルール: 0点スタート 加算方式 (3投制)
+            </span>
+
+            <span id="turnIndicator">
+                現在の手番: プレイヤー 1
+            </span>
+
+        </div>
+
+    </section>
+
+</main>
+
+
+<!-- =========================================================
+     Settings Modal
+========================================================= -->
+
+<div
+    id="settingsModal"
+    class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+
+    <div
+        class="bg-earth-900 border border-earth-700 p-6 rounded-2xl w-full max-w-md shadow-2xl text-center">
+
+        <h3 class="text-xl font-bold mb-2 text-earth-beige">
+            ⚙️ ゲーム設定
+        </h3>
+
+        <p class="text-xs text-earth-400 mb-4">
+            最大ラウンド数（ターン上限）を変更できます。
+        </p>
+
+
+        <div class="mb-5 text-left">
+
+            <label class="block text-xs font-semibold text-earth-beige mb-1">
+                最大ラウンド数 (ターン上限)
+            </label>
+
+            <input
+                type="number"
+                id="maxRoundsInput"
+                min="1"
+                max="50"
+                value="8"
+                class="w-full bg-earth-800 border border-earth-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-earth-rust">
+
+        </div>
+
+
+        <div class="flex justify-end gap-2">
+
+            <button
+                onclick="closeSettingsModal()"
+                class="px-4 py-2 bg-earth-800 hover:bg-earth-700 text-xs rounded">
+                キャンセル
+            </button>
+
+            <button
+                onclick="saveSettings()"
+                class="px-4 py-2 bg-earth-rust text-white text-xs font-bold rounded">
+                設定を保存
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     Mode Modal
+========================================================= -->
+
+<div
+    id="modeModal"
+    class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+
+    <div
+        class="bg-earth-900 border border-earth-700 p-6 rounded-2xl w-full max-w-md shadow-2xl text-center">
+
+        <h3 class="text-xl font-bold mb-2 text-earth-beige">
+            🎮 プレイモード & チャンネル設定
+        </h3>
+
+        <p class="text-xs text-earth-400 mb-4">
+            複数ペアで同時に遊ぶ場合は、同じチャンネル名を入力してください。
+        </p>
+
+
+        <div class="mb-5 text-left">
+
+            <label class="block text-xs font-semibold text-earth-beige mb-1">
+                同期チャンネル名 (例: room1, boardA など)
+            </label>
+
+            <input
+                type="text"
+                id="channelInput"
+                value="darts_room_1"
+                class="w-full bg-earth-800 border border-earth-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-earth-rust">
+
+        </div>
+
+
+        <div class="space-y-3">
+
+            <button
+                onclick="applyAppMode('single')"
+                class="w-full py-2.5 bg-earth-800 hover:bg-earth-700 border border-earth-700 rounded-xl text-xs font-bold text-white transition shadow">
+                🎯 シングルモード (1台で操作＆表示)
+            </button>
+
+            <button
+                onclick="applyAppMode('input')"
+                class="w-full py-2.5 bg-earth-rust hover:bg-earth-rust/85 rounded-xl text-xs font-bold text-white transition shadow">
+                📱 入力専用デバイス (スマホ等)
+            </button>
+
+            <button
+                onclick="applyAppMode('display')"
+                class="w-full py-2.5 bg-earth-green hover:bg-earth-green/85 rounded-xl text-xs font-bold text-white transition shadow">
+                🖥️ 点数表示専用デバイス (大画面等)
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     Sound Modal
+========================================================= -->
+
+<div
+    id="soundModal"
+    class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+
+    <div
+        class="bg-earth-900 border border-earth-700 p-6 rounded-2xl w-full max-w-lg shadow-2xl">
+
+        <h3 class="text-lg font-bold mb-3 text-earth-beige">
+            🔊 効果音設定 (MP3 / 音声URL)
+        </h3>
+
+        <p class="text-xs text-earth-500 mb-4">
+            各ヒット時の音声ファイルURL（mp3等）を設定できます。空欄の場合は内蔵の合成音が鳴ります。
+        </p>
+
+
+        <div class="space-y-3 mb-5 text-xs">
+
+            <div>
+
+                <label class="block text-earth-beige mb-1 font-semibold">
+                    ① 通常エリア（シングル等）
+                </label>
+
+                <input
+                    type="text"
+                    id="soundNormal"
+                    placeholder="例: https://example.com/normal.mp3 または空欄"
+                    class="w-full bg-earth-800 border border-earth-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-earth-rust">
+
+            </div>
+
+
+            <div>
+
+                <label class="block text-earth-beige mb-1 font-semibold">
+                    ② 色付きエリア（ダブル・トリプル）
+                </label>
+
+                <input
+                    type="text"
+                    id="soundColored"
+                    placeholder="例: https://example.com/colored.mp3 または空欄"
+                    class="w-full bg-earth-800 border border-earth-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-earth-rust">
+
+            </div>
+
+
+            <div>
+
+                <label class="block text-earth-beige mb-1 font-semibold">
+                    ③ ブル (Bull / 25点・50点)
+                </label>
+
+                <input
+                    type="text"
+                    id="soundBull"
+                    placeholder="例: https://example.com/bull.mp3 または空欄"
+                    class="w-full bg-earth-800 border border-earth-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-earth-rust">
+
+            </div>
+
+        </div>
+
+
+        <div class="flex justify-end gap-2">
+
+            <button
+                onclick="closeSoundSettings()"
+                class="px-4 py-2 bg-earth-800 hover:bg-earth-700 text-xs rounded">
+                閉じる
+            </button>
+
+            <button
+                onclick="saveSoundSettings()"
+                class="px-4 py-2 bg-earth-rust text-white text-xs font-bold rounded">
+                設定を保存
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     Toast
+========================================================= -->
+
+<div
+    id="toast"
+    class="fixed bottom-5 right-5 bg-earth-800 border border-earth-700 px-4 py-3 rounded-xl shadow-2xl transform translate-y-20 opacity-0 transition-all duration-300 z-50 flex items-center gap-3">
+
+    <span
+        id="toastMsg"
+        class="text-xs text-white">
+        メッセージ
+    </span>
+
+</div>
+
+
+<!-- =========================================================
+     Firebase
+========================================================= -->
+
+<script src="https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js"></script>
+
+<script type="module">
+
+import {
+    initializeApp
+} from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
+
+import {
+    getDatabase,
+    ref,
+    onValue,
+    set
+} from "https://www.gstatic.com/firebasejs/12.18.0/firebase-database.js";
+
+
+const firebaseConfig = {
+    apiKey: "AIzaSyCh1dS522TL9HjGEkH7tCHXFWfJ0F1Qfx0",
+    authDomain: "darts-01.firebaseapp.com",
+    databaseURL: "https://darts-01-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "darts-01",
+    storageBucket: "darts-01.firebasestorage.app",
+    messagingSenderId: "936099490830",
+    appId: "1:936099490830:web:bc3b39184138acbd1aa05f",
+    measurementId: "G-JTX22B0QZQ"
+};
+
+
+try {
+
+    const app = initializeApp(firebaseConfig);
+
+    const db = getDatabase(app);
+
+    window.firebaseRealtime = {
+        db,
+        ref,
+        onValue,
+        set
+    };
+
+    window.firebaseReady = true;
+
+    if (window.firebaseReadyCallbacks) {
+
+        window.firebaseReadyCallbacks
+            .splice(0)
+            .forEach(callback => {
+                try {
+                    callback();
+                } catch (e) {
+                    console.error(e);
+                }
+            });
+
+    }
+
+} catch (error) {
+
+    console.error(
+        "Firebase initialization failed:",
+        error
+    );
+
+}
+
+</script>
+
+
+<!-- =========================================================
+     Main JavaScript
+========================================================= -->
+
+<script>
+
+let appMode = 'single';
+
+let firebaseUnsubscribe = null;
+
+let firebaseWriteVersion = 0;
+
+let lastAppliedRemoteTimestamp = 0;
+
+const DEVICE_ID =
+    localStorage.getItem('darts_device_id') ||
+    ('device_' + Date.now() + '_' + Math.random().toString(36).slice(2));
+
+localStorage.setItem(
+    'darts_device_id',
+    DEVICE_ID
+);
+
+
+let currentChannel = 'darts_room_1';
+
+let broadcastChannel = null;
+
+let syncPollTimer = null;
+
+
+let players = [
+
+    {
+        id: 1,
+        name: "プレイヤー 1",
+        score: 0,
+        currentRoundScores: []
+    },
+
+    {
+        id: 2,
+        name: "プレイヤー 2",
+        score: 0,
+        currentRoundScores: []
+    },
+
+    {
+        id: 3,
+        name: "プレイヤー 3",
+        score: 0,
+        currentRoundScores: []
+    }
+
+];
+
+
+let currentTurnIndex = 0;
+
+let remainingThrows = 3;
+
+let currentRound = 1;
+
+let maxRounds = 8;
+
+let scoreHistory = [];
+
+let hitMarkers = [];
+
+
+let soundConfig = {
+    normal: '',
+    colored: '',
+    bull: ''
+};
+
+
+/* =========================================================
+   DARTBOARD DATA
+   今回ここが新しいボード座標管理
+========================================================= */
+
+const sectors = [
+    20, 1, 18, 4, 13,
+    6, 10, 15, 2, 17,
+    3, 19, 7, 16, 8,
+    11, 14, 9, 12, 5
+];
+
+
+const boardColors = {
+
+    darkBed: '#111111',
+
+    lightBed: '#fdfbf7',
+
+    doubleTripleDark: '#c92a2a',
+
+    doubleTripleLight: '#2b8a3e',
+
+    bullOuter: '#2b8a3e',
+
+    bullInner: '#c92a2a'
+
+};
+
+
+let canvas = null;
+
+let ctx = null;
+
+let audioCtx = null;
+
+
+/* =========================================================
+   Firebase ready handling
+========================================================= */
+
+window.firebaseReady = false;
+
+window.firebaseReadyCallbacks = [];
+
+window.onFirebaseReady = function(callback) {
+
+    if (window.firebaseReady) {
+
+        callback();
+
+    } else {
+
+        window.firebaseReadyCallbacks.push(callback);
+
+    }
+
+};
+
+
+/* =========================================================
+   Startup
+========================================================= */
+
+window.addEventListener(
+    'DOMContentLoaded',
+    () => {
+
+        canvas =
+            document.getElementById('dartboard');
+
+        ctx =
+            canvas.getContext('2d');
+
+
+        const savedChannel =
+            localStorage.getItem('darts_channel');
+
+        if (savedChannel) {
+
+            currentChannel =
+                savedChannel;
+
+        }
+
+
+        const savedMode =
+            localStorage.getItem('darts_mode');
+
+        if (savedMode) {
+
+            appMode =
+                savedMode;
+
+        }
+
+
+        /*
+         * モーダルが初期状態で操作を邪魔しないようにする
+         */
+
+        document
+            .getElementById('modeModal')
+            .classList.add('hidden');
+
+
+        initChannel(currentChannel);
+
+        applyAppModeUI(appMode);
+
+        setupCanvasSize();
+
+        renderPlayers();
+
+        updateUIState();
+
+
+        canvas.addEventListener(
+            'click',
+            handleBoardClick
+        );
+
+
+        window.addEventListener(
+            'resize',
+            setupCanvasSize
+        );
+
+
+        updateSyncStatus();
+
+    }
+);
+
+
+/* =========================================================
+   Storage
+========================================================= */
+
+function getStorageKey() {
+
+    return 'darts_state_' +
+        currentChannel;
+
+}
+
+
+/* =========================================================
+   Firebase Channel Key
+========================================================= */
+
+function getFirebaseChannelKey() {
+
+    return encodeURIComponent(
+        currentChannel
+    );
+
+}
+
+
+/* =========================================================
+   Channel initialization
+========================================================= */
+
+function initChannel(chName) {
+
+    if (broadcastChannel) {
+
+        try {
+            broadcastChannel.close();
+        } catch (e) {}
+
+        broadcastChannel = null;
+
+    }
+
+
+    if (syncPollTimer) {
+
+        clearInterval(
+            syncPollTimer
+        );
+
+        syncPollTimer = null;
+
+    }
+
+
+    if (firebaseUnsubscribe) {
+
+        try {
+            firebaseUnsubscribe();
+        } catch (e) {}
+
+        firebaseUnsubscribe = null;
+
+    }
+
+
+    currentChannel =
+        chName || 'darts_room_1';
+
+
+    localStorage.setItem(
+        'darts_channel',
+        currentChannel
+    );
+
+
+    lastAppliedRemoteTimestamp = 0;
+
+
+    /*
+     * 同一ブラウザ内
+     */
+
+    if (window.BroadcastChannel) {
+
+        broadcastChannel =
+            new BroadcastChannel(
+                'darts_sync_' +
+                currentChannel
+            );
+
+
+        broadcastChannel.onmessage =
+            event => {
+
+                if (
+                    event.data &&
+                    event.data.type ===
+                        'STATE_SYNC'
+                ) {
+
+                    applyIncomingState(
+                        event.data
+                    );
+
+                }
+
+            };
+
+    }
+
+
+    /*
+     * Firebase
+     */
+
+    const connectFirebase = () => {
+
+        if (!window.firebaseRealtime) {
+
+            return;
+
+        }
+
+
+        const {
+            db,
+            ref,
+            onValue
+        } = window.firebaseRealtime;
+
+
+        const channelRef =
+            ref(
+                db,
+                'darts_channels/' +
+                getFirebaseChannelKey()
+            );
+
+
+        firebaseUnsubscribe =
+            onValue(
+                channelRef,
+                snapshot => {
+
+                    const data =
+                        snapshot.val();
+
+
+                    if (
+                        !data ||
+                        !data.timestamp
+                    ) {
+
+                        return;
+
+                    }
+
+
+                    if (
+                        data.deviceId ===
+                        DEVICE_ID
+                    ) {
+
+                        return;
+
+                    }
+
+
+                    if (
+                        Number(data.timestamp) <=
+                        lastAppliedRemoteTimestamp
+                    ) {
+
+                        return;
+
+                    }
+
+
+                    lastAppliedRemoteTimestamp =
+                        Number(data.timestamp);
+
+
+                    applyIncomingState(data);
+
+                },
+                error => {
+
+                    console.error(
+                        'Firebase read error:',
+                        error
+                    );
+
+                    showToast(
+                        'オンライン同期に接続できません'
+                    );
+
+                }
+            );
+
+    };
+
+
+    if (window.firebaseReady) {
+
+        connectFirebase();
+
+    } else if (window.onFirebaseReady) {
+
+        window.onFirebaseReady(
+            connectFirebase
+        );
+
+    }
+
+
+    /*
+     * Firebaseが利用できない場合
+     */
+
+    if (!window.firebaseReady) {
+
+        syncPollTimer =
+            setInterval(() => {
+
+                const raw =
+                    localStorage.getItem(
+                        getStorageKey()
+                    );
+
+
+                if (!raw) return;
+
+
+                try {
+
+                    const data =
+                        JSON.parse(raw);
+
+
+                    if (
+                        data.timestamp &&
+                        data.deviceId !== DEVICE_ID &&
+                        data.timestamp >
+                            lastAppliedRemoteTimestamp
+                    ) {
+
+                        lastAppliedRemoteTimestamp =
+                            data.timestamp;
+
+                        applyIncomingState(
+                            data
+                        );
+
+                    }
+
+                } catch (e) {}
+
+            }, 300);
+
+    }
+
+}
+
+
+/* =========================================================
+   Incoming Firebase State
+========================================================= */
+
+function applyIncomingState(data) {
+
+    if (!data) return;
+
+
+    window._lastSyncTime =
+        data.timestamp ||
+        Date.now();
+
+
+    players =
+        Array.isArray(data.players)
+            ? data.players
+            : players;
+
+
+    currentTurnIndex =
+        Number.isInteger(
+            data.currentTurnIndex
+        )
+            ? data.currentTurnIndex
+            : currentTurnIndex;
+
+
+    remainingThrows =
+        Number.isInteger(
+            data.remainingThrows
+        )
+            ? data.remainingThrows
+            : remainingThrows;
+
+
+    currentRound =
+        Number.isInteger(
+            data.currentRound
+        )
+            ? data.currentRound
+            : currentRound;
+
+
+    maxRounds =
+        Number.isInteger(
+            data.maxRounds
+        )
+            ? data.maxRounds
+            : maxRounds;
+
+
+    hitMarkers =
+        Array.isArray(data.hitMarkers)
+            ? data.hitMarkers
+            : [];
+
+
+    soundConfig =
+        data.soundConfig ||
+        soundConfig;
+
+
+    /*
+     * Undo履歴は端末ごと
+     */
+
+    scoreHistory = [];
+
+
+    if (
+        players.length &&
+        currentTurnIndex >= players.length
+    ) {
+
+        currentTurnIndex = 0;
+
+    }
+
+
+    renderPlayers();
+
+    updateUIState();
+
+
+    if (appMode !== 'display') {
+
+        setupCanvasSize();
+
+    }
+
+
+    if (
+        data.triggerTurnBanner &&
+        data.bannerText
+    ) {
+
+        showTurnBannerAnimation(
+            data.bannerText
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   Broadcast State
+========================================================= */
+
+function broadcastState(
+    triggerBanner = false,
+    bannerText = "Player Change"
+) {
+
+    const timestamp = Date.now();
+
+    window._lastSyncTime =
+        timestamp;
+
+
+    const statePayload = {
+
+        type: 'STATE_SYNC',
+
+        timestamp,
+
+        deviceId: DEVICE_ID,
+
+        players:
+            JSON.parse(
+                JSON.stringify(players)
+            ),
+
+        currentTurnIndex,
+
+        remainingThrows,
+
+        currentRound,
+
+        maxRounds,
+
+        hitMarkers:
+            JSON.parse(
+                JSON.stringify(hitMarkers)
+            ),
+
+        soundConfig:
+            { ...soundConfig },
+
+        triggerTurnBanner:
+            triggerBanner,
+
+        bannerText
+
+    };
+
+
+    /*
+     * BroadcastChannel
+     */
+
+    if (broadcastChannel) {
+
+        try {
+
+            broadcastChannel.postMessage(
+                statePayload
+            );
+
+        } catch (e) {}
+
+    }
+
+
+    /*
+     * LocalStorage
+     */
+
+    try {
+
+        localStorage.setItem(
+            getStorageKey(),
+            JSON.stringify(
+                statePayload
+            )
+        );
+
+    } catch (e) {}
+
+
+    /*
+     * Firebase
+     */
+
+    if (
+        window.firebaseReady &&
+        window.firebaseRealtime
+    ) {
+
+        const writeVersion =
+            ++firebaseWriteVersion;
+
+
+        try {
+
+            const {
+                db,
+                ref,
+                set
+            } = window.firebaseRealtime;
+
+
+            const channelRef =
+                ref(
+                    db,
+                    'darts_channels/' +
+                    getFirebaseChannelKey()
+                );
+
+
+            set(
+                channelRef,
+                statePayload
+            ).catch(error => {
+
+                if (
+                    writeVersion ===
+                    firebaseWriteVersion
+                ) {
+
+                    console.error(
+                        'Firebase write error:',
+                        error
+                    );
+
+                    showToast(
+                        'オンライン同期に失敗しました'
+                    );
+
+                }
+
+            });
+
+        } catch (error) {
+
+            console.error(
+                'Firebase write error:',
+                error
+            );
+
+        }
+
+    }
+
+}
+
+
+/* =========================================================
+   Sync Status
+========================================================= */
+
+function updateSyncStatus() {
+
+    const label =
+        document.getElementById(
+            'modeDisplayLabel'
+        );
+
+
+    if (!label) return;
+
+
+    const modeText =
+        appMode === 'input'
+            ? '📱 入力専用'
+            : appMode === 'display'
+                ? '🖥️ 表示専用'
+                : '🎯 シングル';
+
+
+    const syncText =
+        window.firebaseReady
+            ? '☁️ ONLINE'
+            : '⏳ CONNECTING';
+
+
+    label.innerText =
+        `ch: ${currentChannel} | ${syncText} | モード: ${modeText}`;
+
+}
+
+
+/* =========================================================
+   Mode
+========================================================= */
+
+function applyAppMode(mode) {
+
+    const chInput =
+        document.getElementById(
+            'channelInput'
+        ).value.trim();
+
+
+    if (chInput) {
+
+        initChannel(chInput);
+
+    }
+
+
+    appMode = mode;
+
+
+    localStorage.setItem(
+        'darts_mode',
+        appMode
+    );
+
+
+    document
+        .getElementById('modeModal')
+        .classList.add('hidden');
+
+
+    applyAppModeUI(appMode);
+
+    updateSyncStatus();
+
+
+    showToast(
+        mode === 'input'
+            ? '入力を設定しました'
+            : mode === 'display'
+                ? '表示専用に設定しました'
+                : 'シングルモードに設定しました'
+    );
+
+}
+
+
+function applyAppModeUI(mode) {
+
+    const boardSection =
+        document.getElementById(
+            'boardSection'
+        );
+
+
+    const scoreSection =
+        document.getElementById(
+            'scoreSection'
+        );
+
+
+    const modeLabel =
+        document.getElementById(
+            'modeDisplayLabel'
+        );
+
+
+    const mainEl =
+        document.querySelector('main');
+
+
+    boardSection.style.display =
+        'flex';
+
+
+    scoreSection.style.display =
+        'flex';
+
+
+    mainEl.className =
+        "flex-1 p-4 grid grid-cols-1 lg:grid-cols-12 gap-6 max-w-7xl mx-auto w-full items-center";
+
+
+    scoreSection.className =
+        "lg:col-span-5 flex flex-col bg-earth-900/80 p-5 rounded-2xl border border-earth-800 shadow-xl h-full min-h-[500px]";
+
+
+    document
+        .getElementById('inputControls')
+        .style.display =
+        mode === 'display'
+            ? 'none'
+            : 'flex';
+
+
+    document
+        .getElementById('playerAddHeader')
+        .style.display =
+        'flex';
+
+
+    if (mode === 'input') {
+
+        modeLabel.innerText =
+            `ch: ${currentChannel} | モード: 📱 入力専用`;
+
+    }
+
+    else if (mode === 'display') {
+
+        boardSection.style.display =
+            'none';
+
+
+        mainEl.classList.remove(
+            'lg:grid-cols-12'
+        );
+
+
+        mainEl.classList.add(
+            'flex',
+            'justify-center'
+        );
+
+
+        scoreSection.style.width =
+            '100%';
+
+
+        scoreSection.style.maxWidth =
+            '600px';
+
+
+        modeLabel.innerText =
+            `ch: ${currentChannel} | モード: 🖥️ 表示専用`;
+
+    }
+
+    else {
+
+        modeLabel.innerText =
+            `ch: ${currentChannel} | モード: 🎯 シングル`;
+
+    }
+
+
+    updateSyncStatus();
+
+}
+
+
+function openModeModal() {
+
+    document
+        .getElementById('channelInput')
+        .value =
+        currentChannel;
+
+
+    document
+        .getElementById('modeModal')
+        .classList.remove('hidden');
+
+    document
+        .getElementById('modeModal')
+        .classList.add('flex');
+
+}
+
+
+/* =========================================================
+   Game Settings
+========================================================= */
+
+function openSettingsModal() {
+
+    document
+        .getElementById('maxRoundsInput')
+        .value =
+        maxRounds;
+
+
+    document
+        .getElementById('settingsModal')
+        .classList.remove('hidden');
+
+
+    document
+        .getElementById('settingsModal')
+        .classList.add('flex');
+
+}
+
+
+function closeSettingsModal() {
+
+    document
+        .getElementById('settingsModal')
+        .classList.remove('flex');
+
+
+    document
+        .getElementById('settingsModal')
+        .classList.add('hidden');
+
+}
+
+
+function saveSettings() {
+
+    const val =
+        parseInt(
+            document.getElementById(
+                'maxRoundsInput'
+            ).value,
+            10
+        );
+
+
+    if (
+        val &&
+        val > 0 &&
+        val <= 50
+    ) {
+
+        maxRounds = val;
+
+        closeSettingsModal();
+
+        updateUIState();
+
+        showToast(
+            `最大ラウンド数を ${maxRounds} に設定しました`
+        );
+
+        broadcastState(false);
+
+    } else {
+
+        showToast(
+            "1〜50の数字を入力してください"
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   Sound
+========================================================= */
+
+function getAudioContext() {
+
+    if (!audioCtx) {
+
+        audioCtx =
+            new (
+                window.AudioContext ||
+                window.webkitAudioContext
+            )();
+
+    }
+
+    return audioCtx;
+
+}
+
+
+function playHitSound(type) {
+
+    if (appMode === 'display') return;
+
+
+    const url =
+        soundConfig[type];
+
+
+    if (
+        url &&
+        url.trim() !== ''
+    ) {
+
+        const audio =
+            new Audio(url);
+
+        audio
+            .play()
+            .catch(() => {});
+
+        return;
+
+    }
+
+
+    try {
+
+        const audio =
+            getAudioContext();
+
+
+        if (
+            audio.state ===
+            'suspended'
+        ) {
+
+            audio.resume();
+
+        }
+
+
+        const osc =
+            audio.createOscillator();
+
+
+        const gain =
+            audio.createGain();
+
+
+        osc.connect(gain);
+
+        gain.connect(
+            audio.destination
+        );
+
+
+        const now =
+            audio.currentTime;
+
+
+        if (type === 'normal') {
+
+            osc.frequency.setValueAtTime(
+                300,
+                now
+            );
+
+            osc.frequency.exponentialRampToValueAtTime(
+                100,
+                now + 0.1
+            );
+
+            gain.gain.setValueAtTime(
+                0.3,
+                now
+            );
+
+            gain.gain.exponentialRampToValueAtTime(
+                0.01,
+                now + 0.1
+            );
+
+            osc.start(now);
+
+            osc.stop(
+                now + 0.1
+            );
+
+        }
+
+        else if (type === 'colored') {
+
+            osc.frequency.setValueAtTime(
+                500,
+                now
+            );
+
+            osc.frequency.exponentialRampToValueAtTime(
+                250,
+                now + 0.15
+            );
+
+            gain.gain.setValueAtTime(
+                0.4,
+                now
+            );
+
+            gain.gain.exponentialRampToValueAtTime(
+                0.01,
+                now + 0.15
+            );
+
+            osc.start(now);
+
+            osc.stop(
+                now + 0.15
+            );
+
+        }
+
+        else if (type === 'bull') {
+
+            osc.type =
+                'triangle';
+
+
+            osc.frequency.setValueAtTime(
+                800,
+                now
+            );
+
+            osc.frequency.exponentialRampToValueAtTime(
+                400,
+                now + 0.25
+            );
+
+
+            gain.gain.setValueAtTime(
+                0.5,
+                now
+            );
+
+            gain.gain.exponentialRampToValueAtTime(
+                0.01,
+                now + 0.25
+            );
+
+
+            osc.start(now);
+
+            osc.stop(
+                now + 0.25
+            );
+
+        }
+
+    } catch (e) {}
+
+}
+
+
+/* =========================================================
+   =========================================================
+   DARTBOARD CANVAS
+   =========================================================
+   ここが今回変更した部分
+   =========================================================
+========================================================= */
+
+function setupCanvasSize() {
+
+    if (
+        appMode === 'display' ||
+        !canvas ||
+        !ctx
+    ) {
+        return;
+    }
+
+
+    const container =
+        document.getElementById(
+            'canvasContainer'
+        );
+
+
+    if (!container) return;
+
+
+    const size =
+        Math.max(
+            1,
+            Math.floor(
+                container.clientWidth
+            )
+        );
+
+
+    const dpr =
+        window.devicePixelRatio ||
+        1;
+
+
+    canvas.width =
+        Math.floor(
+            size * dpr
+        );
+
+
+    canvas.height =
+        Math.floor(
+            size * dpr
+        );
+
+
+    canvas.style.width =
+        size + 'px';
+
+
+    canvas.style.height =
+        size + 'px';
+
+
+    /*
+     * 座標変換を毎回リセットする。
+     * resizeを繰り返しても座標がずれない。
+     */
+
+    ctx.setTransform(
+        dpr,
+        0,
+        0,
+        dpr,
+        0,
+        0
+    );
+
+
+    drawDartboard(
+        size,
+        size
+    );
+
+}
+
+
+/* =========================================================
+   Dartboard Drawing
+========================================================= */
+
+function drawDartboard(
+    width,
+    height
+) {
+
+    const cx =
+        width / 2;
+
+
+    const cy =
+        height / 2;
+
+
+    /*
+     * ボード外周
+     */
+
+    const radius =
+        Math.min(
+            cx,
+            cy
+        ) * 0.95;
+
+
+    ctx.clearRect(
+        0,
+        0,
+        width,
+        height
+    );
+
+
+    /*
+     * 各リングの半径
+     */
+
+    const rDoubleOuter =
+        radius * 0.93;
+
+    const rDoubleInner =
+        radius * 0.80;
+
+    const rTripleOuter =
+        radius * 0.58;
+
+    const rTripleInner =
+        radius * 0.45;
+
+    const rOuterBull =
+        radius * 0.15;
+
+    const rInnerBull =
+        radius * 0.07;
+
+
+    /*
+     * ボードベース
+     */
+
+    ctx.fillStyle =
+        boardColors.darkBed;
+
+
+    ctx.beginPath();
+
+    ctx.arc(
+        cx,
+        cy,
+        radius,
+        0,
+        Math.PI * 2
+    );
+
+    ctx.fill();
+
+
+    /*
+     * 20セグメント
+     */
+
+    const angleStep =
+        (Math.PI * 2) / 20;
+
+
+    sectors.forEach(
+        (num, i) => {
+
+            /*
+             * 12時を20として、
+             * 20個のセグメントを配置
+             */
+
+            const startAngle =
+                i * angleStep -
+                Math.PI / 2 -
+                angleStep / 2;
+
+
+            const endAngle =
+                startAngle +
+                angleStep;
+
+
+            /*
+             * 通常エリア
+             */
+
+            ctx.beginPath();
+
+            ctx.moveTo(
+                cx,
+                cy
+            );
+
+            ctx.arc(
+                cx,
+                cy,
+                rDoubleInner,
+                startAngle,
+                endAngle
+            );
+
+
+            ctx.fillStyle =
+                (i % 2 === 0)
+                    ? boardColors.darkBed
+                    : boardColors.lightBed;
+
+
+            ctx.fill();
+
+
+            /*
+             * ダブルリング
+             */
+
+            ctx.beginPath();
+
+            ctx.arc(
+                cx,
+                cy,
+                rDoubleOuter,
+                startAngle,
+                endAngle
+            );
+
+            ctx.arc(
+                cx,
+                cy,
+                rDoubleInner,
+                endAngle,
+                startAngle,
+                true
+            );
+
+
+            ctx.fillStyle =
+                (i % 2 === 0)
+                    ? boardColors.doubleTripleDark
+                    : boardColors.doubleTripleLight;
+
+
+            ctx.fill();
+
+
+            /*
+             * トリプルリング
+             */
+
+            ctx.beginPath();
+
+            ctx.arc(
+                cx,
+                cy,
+                rTripleOuter,
+                startAngle,
+                endAngle
+            );
+
+            ctx.arc(
+                cx,
+                cy,
+                rTripleInner,
+                endAngle,
+                startAngle,
+                true
+            );
+
+
+            ctx.fillStyle =
+                (i % 2 === 0)
+                    ? boardColors.doubleTripleDark
+                    : boardColors.doubleTripleLight;
+
+
+            ctx.fill();
+
+        }
+    );
+
+
+    /*
+     * アウターブル
+     */
+
+    ctx.beginPath();
+
+    ctx.arc(
+        cx,
+        cy,
+        rOuterBull,
+        0,
+        Math.PI * 2
+    );
+
+
+    ctx.fillStyle =
+        boardColors.bullOuter;
+
+
+    ctx.fill();
+
+
+    /*
+     * インナーブル
+     */
+
+    ctx.beginPath();
+
+    ctx.arc(
+        cx,
+        cy,
+        rInnerBull,
+        0,
+        Math.PI * 2
+    );
+
+
+    ctx.fillStyle =
+        boardColors.bullInner;
+
+
+    ctx.fill();
+
+
+    /*
+     * 数字
+     */
+
+    ctx.font =
+        `bold ${Math.max(12, radius * 0.08)}px sans-serif`;
+
+
+    ctx.fillStyle =
+        '#f5f5f4';
+
+
+    ctx.textAlign =
+        'center';
+
+
+    ctx.textBaseline =
+        'middle';
+
+
+    sectors.forEach(
+        (num, i) => {
+
+            const angle =
+                i * angleStep -
+                Math.PI / 2;
+
+
+            const dist =
+                radius * 0.95;
+
+
+            const x =
+                cx +
+                Math.cos(angle) *
+                dist;
+
+
+            const y =
+                cy +
+                Math.sin(angle) *
+                dist;
+
+
+            ctx.fillText(
+                num,
+                x,
+                y
+            );
+
+        }
+    );
+
+
+    /*
+     * ヒットマーカー
+     */
+
+    hitMarkers.forEach(
+        marker => {
+
+            ctx.beginPath();
+
+            ctx.arc(
+                marker.x,
+                marker.y,
+                5,
+                0,
+                Math.PI * 2
+            );
+
+
+            ctx.fillStyle =
+                '#facc15';
+
+
+            ctx.fill();
+
+
+            ctx.lineWidth =
+                2;
+
+
+            ctx.strokeStyle =
+                '#1c1917';
+
+
+            ctx.stroke();
+
+        }
+    );
+
+}
+
+
+/* =========================================================
+   Board Hit Detection
+   =========================================================
+   座標管理も新しいボードと同じ方式
+========================================================= */
+
+function handleBoardClick(e) {
+
+    if (
+        appMode === 'display' ||
+        remainingThrows <= 0 ||
+        currentRound > maxRounds
+    ) {
+        return;
+    }
+
+
+    const rect =
+        canvas.getBoundingClientRect();
+
+
+    /*
+     * canvas左上からのクリック座標
+     */
+
+    const clickX =
+        e.clientX -
+        rect.left;
+
+
+    const clickY =
+        e.clientY -
+        rect.top;
+
+
+    /*
+     * 表示上のcanvasサイズ
+     */
+
+    const displaySize =
+        rect.width;
+
+
+    const cx =
+        displaySize / 2;
+
+
+    const cy =
+        displaySize / 2;
+
+
+    const radius =
+        Math.min(
+            cx,
+            cy
+        ) * 0.95;
+
+
+    /*
+     * 中心からの相対座標
+     */
+
+    const x =
+        clickX - cx;
+
+
+    const y =
+        clickY - cy;
+
+
+    /*
+     * 中心からの距離
+     */
+
+    const dist =
+        Math.sqrt(
+            x * x +
+            y * y
+        );
+
+
+    /*
+     * ボード外
+     */
+
+    if (dist > radius) {
+
+        return;
+
+    }
+
+
+    /*
+     * 角度
+     *
+     * Math.atan2で右方向を0として取得し、
+     * 12時方向を0に変換。
+     */
+
+    let angle =
+        Math.atan2(
+            y,
+            x
+        ) +
+        Math.PI / 2;
+
+
+    if (angle < 0) {
+
+        angle +=
+            Math.PI * 2;
+
+    }
+
+
+    let baseScore = 0;
+
+    let mult = 1;
+
+    let hitType = 'normal';
+
+
+    /*
+     * リング半径
+     */
+
+    const rDoubleOuter =
+        radius * 0.93;
+
+    const rDoubleInner =
+        radius * 0.80;
+
+    const rTripleOuter =
+        radius * 0.58;
+
+    const rTripleInner =
+        radius * 0.45;
+
+    const rOuterBull =
+        radius * 0.15;
+
+    const rInnerBull =
+        radius * 0.07;
+
+
+    /*
+     * ブル
+     */
+
+    if (
+        dist <=
+        rInnerBull
+    ) {
+
+        baseScore = 50;
+
+        mult = 1;
+
+        hitType = 'bull';
+
+    }
+
+    else if (
+        dist <=
+        rOuterBull
+    ) {
+
+        baseScore = 25;
+
+        mult = 1;
+
+        hitType = 'bull';
+
+    }
+
+    else {
+
+        /*
+         * セクター番号を決定
+         */
+
+        const angleStep =
+            (Math.PI * 2) /
+            20;
+
+
+        let sectorAngle =
+            angle +
+            angleStep / 2;
+
+
+        if (
+            sectorAngle >=
+            Math.PI * 2
+        ) {
+
+            sectorAngle -=
+                Math.PI * 2;
+
+        }
+
+
+        const index =
+            Math.floor(
+                sectorAngle /
+                angleStep
+            );
+
+
+        baseScore =
+            sectors[index];
+
+
+        /*
+         * ダブル
+         */
+
+        if (
+            dist >= rDoubleInner &&
+            dist <= rDoubleOuter
+        ) {
+
+            mult = 2;
+
+            hitType =
+                'colored';
+
+        }
+
+        /*
+         * トリプル
+         */
+
+        else if (
+            dist >= rTripleInner &&
+            dist <= rTripleOuter
+        ) {
+
+            mult = 3;
+
+            hitType =
+                'colored';
+
+        }
+
+        /*
+         * ダブル外側
+         */
+
+        else if (
+            dist > rDoubleOuter
+        ) {
+
+            return;
+
+        }
+
+        /*
+         * シングル
+         */
+
+        else {
+
+            mult = 1;
+
+            hitType =
+                'normal';
+
+        }
+
+    }
+
+
+    const totalScore =
+        baseScore * mult;
+
+
+    /*
+     * Undo用履歴
+     */
+
+    scoreHistory.push({
+
+        playerIndex:
+            currentTurnIndex,
+
+        remainingThrows:
+            remainingThrows,
+
+        currentRound:
+            currentRound,
+
+        previousScore:
+            players[currentTurnIndex].score,
+
+        pointsAdded:
+            totalScore,
+
+        markersSnapshot:
+            JSON.parse(
+                JSON.stringify(
+                    hitMarkers
+                )
+            ),
+
+        roundScoresSnapshot:
+            [
+                ...players[
+                    currentTurnIndex
+                ].currentRoundScores
+            ]
+
+    });
+
+
+    /*
+     * ヒット位置を保存
+     */
+
+    hitMarkers.push({
+
+        x: clickX,
+
+        y: clickY
+
+    });
+
+
+    /*
+     * ボードを再描画
+     */
+
+    drawDartboard(
+        displaySize,
+        displaySize
+    );
+
+
+    /*
+     * サウンド
+     */
+
+    playHitSound(
+        hitType
+    );
+
+
+    /*
+     * ヒット演出
+     */
+
+    triggerEffects(
+        clickX,
+        clickY,
+        totalScore,
+        hitType
+    );
+
+
+    /*
+     * 得点処理
+     */
+
+    applyScore(
+        totalScore,
+        false
+    );
+
+}
+
+
+/* =========================================================
+   Miss
+========================================================= */
+
+function recordMiss() {
+
+    if (
+        appMode === 'display' ||
+        remainingThrows <= 0 ||
+        currentRound > maxRounds
+    ) {
+        return;
+    }
+
+
+    scoreHistory.push({
+
+        playerIndex:
+            currentTurnIndex,
+
+        remainingThrows:
+            remainingThrows,
+
+        currentRound:
+            currentRound,
+
+        previousScore:
+            players[currentTurnIndex].score,
+
+        pointsAdded:
+            0,
+
+        markersSnapshot:
+            JSON.parse(
+                JSON.stringify(
+                    hitMarkers
+                )
+            ),
+
+        roundScoresSnapshot:
+            [
+                ...players[
+                    currentTurnIndex
+                ].currentRoundScores
+            ]
+
+    });
+
+
+    applyScore(
+        0,
+        false
+    );
+
+
+    showToast(
+        "ミス (0点)"
+    );
+
+}
+
+
+/* =========================================================
+   Hit Effects
+========================================================= */
+
+function triggerEffects(
+    x,
+    y,
+    score,
+    hitType
+) {
+
+    const overlay =
+        document.getElementById(
+            'effectOverlay'
+        );
+
+
+    if (!overlay) return;
+
+
+    if (hitType === 'bull') {
+
+        for (
+            let i = 0;
+            i < 4;
+            i++
+        ) {
+
+            setTimeout(
+                () => {
+
+                    const ripple =
+                        document.createElement(
+                            'div'
+                        );
+
+
+                    ripple.className =
+                        'absolute w-20 h-20 rounded-full border-4 colorful-ripple-effect pointer-events-none';
+
+
+                    ripple.style.left =
+                        (
+                            x -
+                            40 +
+                            i * 8
+                        ) +
+                        'px';
+
+
+                    ripple.style.top =
+                        (
+                            y -
+                            40 -
+                            i * 8
+                        ) +
+                        'px';
+
+
+                    overlay.appendChild(
+                        ripple
+                    );
+
+
+                    setTimeout(
+                        () =>
+                            ripple.remove(),
+                        600
+                    );
+
+                },
+                i * 90
+            );
+
+        }
+
+    }
+
+    else {
+
+        const rippleCount =
+            hitType === 'colored'
+                ? 3
+                : 1;
+
+
+        for (
+            let i = 0;
+            i < rippleCount;
+            i++
+        ) {
+
+            setTimeout(
+                () => {
+
+                    const ripple =
+                        document.createElement(
+                            'div'
+                        );
+
+
+                    ripple.className =
+                        'absolute w-16 h-16 rounded-full border-2 fast-ripple-effect pointer-events-none';
+
+
+                    ripple.style.left =
+                        (
+                            x -
+                            32 +
+                            i * 8
+                        ) +
+                        'px';
+
+
+                    ripple.style.top =
+                        (
+                            y -
+                            32 -
+                            i * 8
+                        ) +
+                        'px';
+
+
+                    overlay.appendChild(
+                        ripple
+                    );
+
+
+                    setTimeout(
+                        () =>
+                            ripple.remove(),
+                        450
+                    );
+
+                },
+                i * 90
+            );
+
+        }
+
+    }
+
+
+    /*
+     * 得点ポップアップ
+     */
+
+    const popup =
+        document.createElement(
+            'div'
+        );
+
+
+    popup.className =
+        'absolute text-white font-black text-3xl score-popup-effect pointer-events-none drop-shadow-[0_2px_6px_rgba(0,0,0,0.9)]';
+
+
+    popup.innerText =
+        `+${score}`;
+
+
+    popup.style.left =
+        (x - 20) +
+        'px';
+
+
+    popup.style.top =
+        (y - 20) +
+        'px';
+
+
+    overlay.appendChild(
+        popup
+    );
+
+
+    setTimeout(
+        () =>
+            popup.remove(),
+        700
+    );
+
+}
+
+
+/* =========================================================
+   Player Card Popup
+========================================================= */
+
+function triggerPlayerCardPopup(
+    playerIndex,
+    score
+) {
+
+    const playerCard =
+        document.getElementById(
+            `player-card-${playerIndex}`
+        );
+
+
+    if (!playerCard) return;
+
+
+    const scoreElem =
+        playerCard.querySelector(
+            '.player-score-val'
+        );
+
+
+    if (!scoreElem) return;
+
+
+    const badge =
+        document.createElement(
+            'div'
+        );
+
+
+    badge.className =
+        'absolute text-white font-black text-2xl score-popup-effect pointer-events-none z-30 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]';
+
+
+    badge.innerText =
+        `+${score}`;
+
+
+    badge.style.left =
+        (scoreElem.offsetLeft + 10) +
+        'px';
+
+
+    badge.style.top =
+        scoreElem.offsetTop +
+        'px';
+
+
+    playerCard.style.position =
+        'relative';
+
+
+    playerCard.appendChild(
+        badge
+    );
+
+
+    setTimeout(
+        () =>
+            badge.remove(),
+        700
+    );
+
+}
+
+
+/* =========================================================
+   Player Change Banner
+========================================================= */
+
+function showTurnBannerAnimation(
+    text = "Player Change"
+) {
+
+    const banner =
+        document.getElementById(
+            'turnChangeOverlay'
+        );
+
+
+    const bannerText =
+        document.getElementById(
+            'turnChangeBannerText'
+        );
+
+
+    if (bannerText) {
+
+        bannerText.innerText =
+            text;
+
+    }
+
+
+    if (banner) {
+
+        banner.classList.remove(
+            'hidden'
+        );
+
+
+        setTimeout(
+            () => {
+
+                banner.classList.add(
+                    'hidden'
+                );
+
+            },
+            700
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   Apply Score
+========================================================= */
+
+function applyScore(
+    points,
+    pushHistory = true
+) {
+
+    if (
+        players.length === 0 ||
+        currentRound > maxRounds
+    ) {
+
+        return;
+
+    }
+
+
+    const currentPlayer =
+        players[currentTurnIndex];
+
+
+    if (!currentPlayer) return;
+
+
+    if (pushHistory) {
+
+        scoreHistory.push({
+
+            playerIndex:
+                currentTurnIndex,
+
+            remainingThrows:
+                remainingThrows,
+
+            currentRound:
+                currentRound,
+
+            previousScore:
+                currentPlayer.score,
+
+            pointsAdded:
+                points,
+
+            markersSnapshot:
+                JSON.parse(
+                    JSON.stringify(
+                        hitMarkers
+                    )
+                ),
+
+            roundScoresSnapshot:
+                [
+                    ...currentPlayer.currentRoundScores
+                ]
+
+        });
+
+    }
+
+
+    currentPlayer.score +=
+        points;
+
+
+    currentPlayer.currentRoundScores.push(
+        points
+    );
+
+
+    triggerPlayerCardPopup(
+        currentTurnIndex,
+        points
+    );
+
+
+    remainingThrows--;
+
+
+    /*
+     * 即時表示
+     */
+
+    renderPlayers();
+
+    updateUIState();
+
+    broadcastState(false);
+
+
+    /*
+     * 3投終了
+     */
+
+    if (
+        remainingThrows <= 0
+    ) {
+
+        const finishedPlayerIndex =
+            currentTurnIndex;
+
+
+        setTimeout(
+            () => {
+
+                const nextPlayerIndex =
+                    (
+                        finishedPlayerIndex +
+                        1
+                    ) %
+                    players.length;
+
+
+                if (
+                    nextPlayerIndex === 0
+                ) {
+
+                    currentRound++;
+
+                }
+
+
+                const bannerMsg =
+                    currentRound > maxRounds
+                        ? 'Game Finished!'
+                        : 'Player Change';
+
+
+                showTurnBannerAnimation(
+                    bannerMsg
+                );
+
+
+                setTimeout(
+                    () => {
+
+                        if (
+                            players.length === 0
+                        ) {
+                            return;
+                        }
+
+
+                        remainingThrows =
+                            3;
+
+
+                        const player =
+                            players[
+                                finishedPlayerIndex
+                            ];
+
+
+                        if (player) {
+
+                            player.currentRoundScores =
+                                [];
+
+                        }
+
+
+                        currentTurnIndex =
+                            Math.min(
+                                nextPlayerIndex,
+                                players.length - 1
+                            );
+
+
+                        hitMarkers =
+                            [];
+
+
+                        renderPlayers();
+
+                        updateUIState();
+
+
+                        if (
+                            appMode !== 'display'
+                        ) {
+
+                            setupCanvasSize();
+
+                        }
+
+
+                        broadcastState(
+                            true,
+                            bannerMsg
+                        );
+
+                    },
+                    700
+                );
+
+            },
+            1200
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   Undo
+========================================================= */
+
+function undoLastScore() {
+
+    if (
+        scoreHistory.length === 0 ||
+        appMode === 'display'
+    ) {
+
+        return;
+
+    }
+
+
+    const lastAction =
+        scoreHistory.pop();
+
+
+    const player =
+        players[
+            lastAction.playerIndex
+        ];
+
+
+    if (!player) return;
+
+
+    player.score =
+        lastAction.previousScore;
+
+
+    player.currentRoundScores =
+        lastAction.roundScoresSnapshot ||
+        [];
+
+
+    currentTurnIndex =
+        Math.max(
+            0,
+            Math.min(
+                lastAction.playerIndex,
+                players.length - 1
+            )
+        );
+
+
+    remainingThrows =
+        lastAction.remainingThrows;
+
+
+    currentRound =
+        lastAction.currentRound;
+
+
+    hitMarkers =
+        lastAction.markersSnapshot ||
+        [];
+
+
+    setupCanvasSize();
+
+    renderPlayers();
+
+    updateUIState();
+
+
+    showToast(
+        "入力をやり直しました"
+    );
+
+
+    broadcastState(false);
+
+}
+
+
+/* =========================================================
+   Players
+========================================================= */
+
+function renderPlayers() {
+
+    const container =
+        document.getElementById(
+            'playersList'
+        );
+
+
+    if (!container) return;
+
+
+    container.innerHTML =
+        '';
+
+
+    players.forEach(
+        (p, idx) => {
+
+            const isCurrentTurn =
+                (
+                    idx === currentTurnIndex &&
+                    currentRound <= maxRounds
+                );
+
+
+            const historyText =
+                p.currentRoundScores.length > 0
+                    ? p.currentRoundScores.join(', ')
+                    : '-';
+
+
+            const card =
+                document.createElement(
+                    'div'
+                );
+
+
+            card.id =
+                `player-card-${idx}`;
+
+
+            card.className =
+                `p-4 rounded-xl border transition-all flex items-center justify-between overflow-hidden ${
+                    isCurrentTurn
+                        ? 'bg-earth-800 border-amber-500/80 shadow-lg ring-2 ring-amber-500/60'
+                        : 'bg-earth-900/40 border-earth-800 opacity-80'
+                }`;
+
+
+            card.innerHTML = `
+
+                <div class="flex items-center gap-3">
+
+                    <div class="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold ${
+                        isCurrentTurn
+                            ? 'bg-amber-500 text-earth-900 shadow-md'
+                            : 'bg-earth-800 text-earth-beige'
+                    }">
+                        ${idx + 1}
+                    </div>
+
+
+                    <div>
+
+                        <div class="flex items-center gap-2">
+
+                            <span
+                                class="font-bold text-sm ${
+                                    isCurrentTurn
+                                        ? 'text-amber-400'
+                                        : 'text-white'
+                                }">
+                                ${escapeHtml(
+                                    String(
+                                        p.name ||
+                                        'プレイヤー ' +
+                                        (idx + 1)
+                                    )
+                                )}
+                            </span>
+
+
+                            ${
+                                isCurrentTurn
+                                    ? `
+                                        <span class="text-[10px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded font-semibold">
+                                            投擲中 (残り${remainingThrows}投)
+                                        </span>
+                                      `
+                                    : ''
+                            }
+
+                        </div>
+
+
+                        <div class="flex items-baseline gap-2 mt-0.5">
+
+                            <span
+                                class="text-2xl font-black tracking-tight text-earth-beige player-score-val">
+                                ${Number(p.score) || 0}
+                            </span>
+
+                            <span
+                                class="text-[calc(1.5rem*0.8)] font-bold text-stone-500 tracking-wider">
+                                ${historyText}
+                            </span>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <div class="flex items-center gap-1 z-20 ${
+                    appMode === 'display'
+                        ? 'hidden'
+                        : ''
+                }">
+
+                    <button
+                        onclick="adjustScore(${idx}, 10)"
+                        title="10点加算"
+                        class="p-1.5 bg-earth-800 hover:bg-earth-700 text-[10px] rounded text-earth-beige transition">
+                        +10
+                    </button>
+
+                    <button
+                        onclick="removePlayer(${idx})"
+                        title="削除"
+                        class="p-1.5 hover:bg-red-500/20 hover:text-red-400 text-earth-500 rounded transition text-xs ml-1">
+                        ✕
+                    </button>
+
+                </div>
+
+            `;
+
+
+            container.appendChild(
+                card
+            );
+
+        }
+    );
+
+}
+
+
+/* =========================================================
+   UI State
+========================================================= */
+
+function updateUIState() {
+
+    const undoBtn =
+        document.getElementById(
+            'undoBtn'
+        );
+
+
+    if (undoBtn) {
+
+        undoBtn.disabled =
+            scoreHistory.length === 0;
+
+    }
+
+
+    const badge =
+        document.getElementById(
+            'throwCountBadge'
+        );
+
+
+    if (badge) {
+
+        badge.innerText =
+            remainingThrows;
+
+    }
+
+
+    const turnRemainingBadge =
+        document.getElementById(
+            'turnRemainingBadge'
+        );
+
+
+    if (turnRemainingBadge) {
+
+        const remainingRoundsCount =
+            Math.max(
+                0,
+                maxRounds -
+                currentRound +
+                1
+            );
+
+
+        turnRemainingBadge.innerText =
+            `${remainingRoundsCount} / ${maxRounds}`;
+
+    }
+
+
+    const indicator =
+        document.getElementById(
+            'turnIndicator'
+        );
+
+
+    if (!indicator) return;
+
+
+    if (
+        currentRound > maxRounds
+    ) {
+
+        indicator.innerText =
+            `ゲーム終了 (全 ${maxRounds} ラウンド完了)`;
+
+    }
+
+    else if (
+        players.length > 0
+    ) {
+
+        indicator.innerText =
+            `現在の手番: ${players[currentTurnIndex].name} (ラウンド ${currentRound}/${maxRounds})`;
+
+    }
+
+    else {
+
+        indicator.innerText =
+            'プレイヤーがいません';
+
+    }
+
+
+    updateSyncStatus();
+
+}
+
+
+/* =========================================================
+   Manual Score Adjustment
+========================================================= */
+
+function adjustScore(
+    index,
+    amount
+) {
+
+    if (
+        appMode === 'display' ||
+        currentRound > maxRounds ||
+        !players[index]
+    ) {
+
+        return;
+
+    }
+
+
+    scoreHistory.push({
+
+        playerIndex:
+            index,
+
+        remainingThrows:
+            remainingThrows,
+
+        currentRound:
+            currentRound,
+
+        previousScore:
+            players[index].score,
+
+        pointsAdded:
+            amount,
+
+        markersSnapshot:
+            JSON.parse(
+                JSON.stringify(
+                    hitMarkers
+                )
+            ),
+
+        roundScoresSnapshot:
+            [
+                ...players[index]
+                    .currentRoundScores
+            ]
+
+    });
+
+
+    players[index].score +=
+        amount;
+
+
+    players[index].currentRoundScores.push(
+        amount
+    );
+
+
+    renderPlayers();
+
+    updateUIState();
+
+    broadcastState(false);
+
+}
+
+
+/* =========================================================
+   Sound Settings
+========================================================= */
+
+function openSoundSettings() {
+
+    document
+        .getElementById('soundNormal')
+        .value =
+        soundConfig.normal;
+
+
+    document
+        .getElementById('soundColored')
+        .value =
+        soundConfig.colored;
+
+
+    document
+        .getElementById('soundBull')
+        .value =
+        soundConfig.bull;
+
+
+    document
+        .getElementById('soundModal')
+        .classList.remove('hidden');
+
+
+    document
+        .getElementById('soundModal')
+        .classList.add('flex');
+
+}
+
+
+function closeSoundSettings() {
+
+    document
+        .getElementById('soundModal')
+        .classList.remove('flex');
+
+
+    document
+        .getElementById('soundModal')
+        .classList.add('hidden');
+
+}
+
+
+function saveSoundSettings() {
+
+    soundConfig.normal =
+        document
+            .getElementById('soundNormal')
+            .value
+            .trim();
+
+
+    soundConfig.colored =
+        document
+            .getElementById('soundColored')
+            .value
+            .trim();
+
+
+    soundConfig.bull =
+        document
+            .getElementById('soundBull')
+            .value
+            .trim();
+
+
+    closeSoundSettings();
+
+
+    showToast(
+        "効果音設定を保存しました"
+    );
+
+
+    broadcastState(false);
+
+}
+
+
+/* =========================================================
+   Add Player
+========================================================= */
+
+function addPlayer() {
+
+    if (
+        appMode === 'display'
+    ) {
+
+        return;
+
+    }
+
+
+    const nextIndex =
+        players.length + 1;
+
+
+    const name =
+        `プレイヤー ${nextIndex}`;
+
+
+    players.push({
+
+        id: Date.now(),
+
+        name,
+
+        score: 0,
+
+        currentRoundScores: []
+
+    });
+
+
+    renderPlayers();
+
+    updateUIState();
+
+
+    showToast(
+        `${name} を追加しました`
+    );
+
+
+    broadcastState(false);
+
+}
+
+
+/* =========================================================
+   Remove Player
+========================================================= */
+
+function removePlayer(index) {
+
+    if (
+        appMode === 'display' ||
+        players.length <= 1
+    ) {
+
+        if (
+            players.length <= 1
+        ) {
+
+            showToast(
+                "最低1人のプレイヤーが必要です"
+            );
+
+        }
+
+        return;
+
+    }
+
+
+    const removed =
+        players.splice(
+            index,
+            1
+        )[0];
+
+
+    if (
+        currentTurnIndex >=
+        players.length
+    ) {
+
+        currentTurnIndex = 0;
+
+    }
+
+
+    renderPlayers();
+
+    updateUIState();
+
+
+    showToast(
+        `${removed.name} を削除しました`
+    );
+
+
+    broadcastState(false);
+
+}
+
+
+/* =========================================================
+   Reset Scores
+========================================================= */
+
+function resetScoresOnly() {
+
+    if (
+        appMode === 'display'
+    ) {
+
+        return;
+
+    }
+
+
+    if (
+        confirm(
+            "全プレイヤーの得点をリセットしますか？"
+        )
+    ) {
+
+        players.forEach(
+            p => {
+
+                p.score = 0;
+
+                p.currentRoundScores =
+                    [];
+
+            }
+        );
+
+
+        currentTurnIndex = 0;
+
+        remainingThrows = 3;
+
+        currentRound = 1;
+
+        hitMarkers = [];
+
+        scoreHistory = [];
+
+
+        setupCanvasSize();
+
+        renderPlayers();
+
+        updateUIState();
+
+
+        showToast(
+            "得点をリセットしました"
+        );
+
+
+        broadcastState(false);
+
+    }
+
+}
+
+
+/* =========================================================
+   Complete Reset
+========================================================= */
+
+function resetGame() {
+
+    if (
+        appMode === 'display'
+    ) {
+
+        return;
+
+    }
+
+
+    if (
+        confirm(
+            "ゲームを最初から完全にリセットしますか？"
+        )
+    ) {
+
+        players.forEach(
+            p => {
+
+                p.score = 0;
+
+                p.currentRoundScores =
+                    [];
+
+            }
+        );
+
+
+        currentTurnIndex = 0;
+
+        remainingThrows = 3;
+
+        currentRound = 1;
+
+        hitMarkers = [];
+
+        scoreHistory = [];
+
+
+        setupCanvasSize();
+
+        renderPlayers();
+
+        updateUIState();
+
+
+        showToast(
+            "ゲームをリセットしました"
+        );
+
+
+        broadcastState(false);
+
+    }
+
+}
+
+
+/* =========================================================
+   Toast
+========================================================= */
+
+function showToast(message) {
+
+    const toast =
+        document.getElementById(
+            'toast'
+        );
+
+
+    const msg =
+        document.getElementById(
+            'toastMsg'
+        );
+
+
+    if (
+        !toast ||
+        !msg
+    ) {
+
+        return;
+
+    }
+
+
+    msg.innerText =
+        message;
+
+
+    toast.classList.remove(
+        'translate-y-20',
+        'opacity-0'
+    );
+
+
+    toast.classList.add(
+        'translate-y-0',
+        'opacity-100'
+    );
+
+
+    clearTimeout(
+        window._toastTimer
+    );
+
+
+    window._toastTimer =
+        setTimeout(
+            () => {
+
+                toast.classList.remove(
+                    'translate-y-0',
+                    'opacity-100'
+                );
+
+
+                toast.classList.add(
+                    'translate-y-20',
+                    'opacity-0'
+                );
+
+            },
+            2500
+        );
+
+}
+
+
+/* =========================================================
+   HTML Escape
+========================================================= */
+
+function escapeHtml(str) {
+
+    return String(str).replace(
+        /[&<>'"]/g,
+        tag => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            "'": '&#39;',
+            '"': '&quot;'
+        }[tag] || tag)
+    );
+
+}
+
+</script>
+
+</body>
+</html>
