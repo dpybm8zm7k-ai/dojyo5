@@ -1,0 +1,3695 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+
+<title>DARTS COUNT-UP</title>
+
+<style>
+*{
+  box-sizing:border-box;
+  -webkit-tap-highlight-color:transparent;
+}
+
+html,body{
+  margin:0;
+  width:100%;
+  height:100%;
+  overflow:hidden;
+  background:#050505;
+  color:#fff;
+  font-family:Arial,"Helvetica Neue",sans-serif;
+}
+
+button,input{
+  font:inherit;
+}
+
+button{
+  border:0;
+  color:white;
+  background:#181818;
+}
+
+.screen{
+  position:absolute;
+  inset:0;
+  display:none !important;
+}
+
+.screen.active{
+  display:flex !important;
+}
+
+/* =========================
+   START
+========================= */
+
+#startScreen{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:24px;
+  background:#050505;
+}
+
+.title{
+  font-size:clamp(38px,7vw,80px);
+  font-weight:900;
+  letter-spacing:5px;
+}
+
+.roomBox{
+  width:min(520px,85vw);
+}
+
+.roomBox input{
+  width:100%;
+  padding:18px;
+  border-radius:10px;
+  border:1px solid #444;
+  background:#111;
+  color:white;
+  text-align:center;
+  font-size:24px;
+  outline:none;
+}
+
+/* =========================
+   START ROOM SELECT
+========================= */
+
+.roomSelect{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:18px;
+  width:min(650px,90vw);
+}
+
+.roomSelectTitle{
+  color:#888;
+  font-size:15px;
+  letter-spacing:2px;
+}
+
+.roomButtons{
+  display:flex;
+  gap:18px;
+  width:100%;
+}
+
+.roomButtons button{
+  flex:1;
+  min-height:90px;
+  border:1px solid #444;
+  border-radius:12px;
+  font-size:25px;
+  font-weight:bold;
+  cursor:pointer;
+  touch-action:manipulation;
+}
+
+.roomButtons button:active{
+  transform:scale(.97);
+  background:#333;
+}
+
+.roomButtons button.selected{
+  background:#333;
+  border-color:#d8b800;
+}
+
+.roleSelect{
+  display:none;
+  flex-direction:column;
+  align-items:center;
+  gap:18px;
+  width:min(650px,90vw);
+}
+
+.roleSelectTitle{
+  color:#888;
+  font-size:15px;
+  letter-spacing:2px;
+}
+
+.roleButtons{
+  display:flex;
+  gap:18px;
+  width:100%;
+}
+
+.roleButtons button{
+  flex:1;
+  min-height:90px;
+  border:1px solid #444;
+  border-radius:12px;
+  font-size:25px;
+  font-weight:bold;
+  cursor:pointer;
+  touch-action:manipulation;
+}
+
+.roleButtons button:active{
+  transform:scale(.97);
+  background:#333;
+}
+
+
+/* =========================
+   INPUT
+========================= */
+
+#inputScreen{
+  flex-direction:column;
+}
+
+.inputHeader{
+  height:105px;
+  flex:none;
+  display:grid;
+  grid-template-columns:1fr auto 1fr;
+  align-items:center;
+  padding:10px 22px;
+  background:#0c0c0c;
+  border-bottom:1px solid #222;
+}
+
+.turnInfo{
+  text-align:left;
+}
+
+.turnInfo small{
+  display:block;
+  color:#888;
+  font-size:15px;
+}
+
+.turnInfo strong{
+  font-size:42px;
+  line-height:1;
+}
+
+.currentPlayer{
+  text-align:center;
+}
+
+.currentPlayer small{
+  display:block;
+  color:#888;
+  font-size:15px;
+}
+
+.currentPlayer strong{
+  font-size:32px;
+}
+
+.throwInfo{
+  text-align:right;
+}
+
+.throwInfo small{
+  display:block;
+  color:#888;
+  font-size:15px;
+}
+
+.throwInfo strong{
+  font-size:42px;
+  line-height:1;
+}
+
+.inputMain{
+  flex:1;
+  min-height:0;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  position:relative;
+  overflow:hidden;
+}
+
+.boardWrap{
+  width:min(90vh,90vw);
+  height:min(90vh,90vw);
+  max-width:900px;
+  max-height:900px;
+  position:relative;
+}
+
+#dartboard{
+  width:100%;
+  height:100%;
+  display:block;
+  touch-action:none;
+  user-select:none;
+}
+
+.boardSegment{
+  stroke:none;
+}
+
+.boardNumber{
+  font-family:
+    "Bodoni 72",
+    "Times New Roman",
+    "Yu Mincho",
+    "Hiragino Mincho ProN",
+    serif;
+
+  font-weight:900;
+  font-size:15px;
+  fill:white;
+  text-anchor:middle;
+  dominant-baseline:middle;
+  pointer-events:none;
+  paint-order:stroke;
+  stroke:#000;
+  stroke-width:.8px;
+}
+
+.hitMarker{
+  pointer-events:none;
+}
+
+/* INPUT MENU */
+
+.inputMenu{
+  position:absolute;
+  top:18px;
+  right:18px;
+  z-index:10;
+}
+
+.menuButton{
+  width:62px;
+  height:62px;
+  border-radius:50%;
+  background:#171717;
+  border:1px solid #444;
+  font-size:28px;
+  cursor:pointer;
+}
+
+.menuPanel{
+  position:absolute;
+  right:0;
+  top:72px;
+  width:270px;
+  padding:14px;
+  border-radius:12px;
+  background:#151515;
+  border:1px solid #333;
+  display:none;
+  box-shadow:0 10px 40px #000;
+}
+
+.menuPanel.open{
+  display:block;
+}
+
+.menuPanel button{
+  width:100%;
+  padding:14px;
+  margin:4px 0;
+  border-radius:8px;
+  text-align:left;
+  cursor:pointer;
+}
+
+.menuPanel button:active{
+  background:#333;
+}
+
+.turnSetting{
+  padding:12px 5px;
+  color:#aaa;
+}
+
+.turnSetting input{
+  width:100%;
+  margin-top:8px;
+}
+
+/* =========================
+   OUTPUT
+========================= */
+
+#outputScreen{
+  flex-direction:column;
+  background:#050505;
+}
+
+.outputHeader{
+  flex:none;
+  min-height:170px;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+  background:#090909;
+  border-bottom:1px solid #252525;
+  position:relative;
+}
+
+.outputHeader .label{
+  color:#888;
+  font-size:20px;
+  letter-spacing:3px;
+}
+
+.outputCurrentPlayer{
+  font-size:clamp(42px,7vw,80px);
+  font-weight:900;
+  margin:5px 0;
+}
+
+.outputCurrentScore{
+  font-family:
+    "Bodoni 72",
+    "Times New Roman",
+    "Yu Mincho",
+    serif;
+
+  font-size:clamp(100px,16vw,190px);
+  line-height:.85;
+  font-weight:900;
+  letter-spacing:-4px;
+}
+
+.outputLastScore{
+  position:absolute;
+  right:30px;
+  bottom:20px;
+  color:#777;
+  font-size:22px;
+}
+
+.outputMain{
+  flex:1;
+  min-height:0;
+  overflow:auto;
+  padding:30px;
+}
+
+.playerList{
+  width:min(1200px,96vw);
+  margin:auto;
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+}
+
+/* 4人以上 */
+
+.playerList.fourOrMore{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:14px;
+  align-items:start;
+}
+
+.playerRow{
+  min-height:90px;
+  display:grid;
+  grid-template-columns:70px 1fr auto auto;
+  align-items:center;
+  gap:20px;
+  padding:12px 28px;
+  border-radius:14px;
+  background:#111;
+  border:1px solid #242424;
+  transition:.2s;
+}
+
+.playerRow.current{
+  background:#191600;
+  border:2px solid #d8b800;
+  box-shadow:
+    0 0 15px rgba(255,215,0,.18),
+    inset 0 0 15px rgba(255,215,0,.06);
+}
+
+.playerNo{
+  color:#777;
+  font-size:25px;
+  text-align:center;
+}
+
+.playerName{
+  font-size:clamp(25px,3vw,42px);
+  font-weight:bold;
+  min-width:0;
+}
+
+.topPrayer{
+  display:inline-block;
+  margin-left:12px;
+  padding:3px 8px;
+  border:1px solid #d8b800;
+  border-radius:5px;
+  color:#d8b800;
+  font-size:.38em;
+  vertical-align:middle;
+  letter-spacing:1px;
+  white-space:nowrap;
+}
+
+.playerTurnScore{
+  color:#777;
+  font-size:clamp(20px,2.5vw,32px);
+  min-width:100px;
+  text-align:right;
+}
+
+.playerTotal{
+  font-family:
+    "Bodoni 72",
+    "Times New Roman",
+    "Yu Mincho",
+    serif;
+
+  font-size:clamp(42px,6vw,76px);
+  font-weight:900;
+  min-width:170px;
+  text-align:right;
+}
+
+/* =========================
+   HISTORY
+========================= */
+
+.historyBox{
+  width:min(1200px,96vw);
+  margin:0 auto 25px;
+  background:#0c0c0c;
+  border:1px solid #242424;
+  border-radius:14px;
+  overflow:hidden;
+}
+
+.historyTitle{
+  padding:12px 18px;
+  color:#888;
+  font-size:15px;
+  letter-spacing:2px;
+  border-bottom:1px solid #222;
+}
+
+.historyList{
+  max-height:220px;
+  overflow:auto;
+}
+
+.historyItem{
+  display:grid;
+  grid-template-columns:1fr auto auto;
+  align-items:center;
+  gap:20px;
+  padding:10px 18px;
+  border-bottom:1px solid #181818;
+}
+
+.historyPlayer{
+  font-size:20px;
+  font-weight:bold;
+}
+
+.historyScore{
+  font-family:
+    "Bodoni 72",
+    "Times New Roman",
+    "Yu Mincho",
+    serif;
+  font-size:28px;
+  font-weight:900;
+}
+
+.historyLabel{
+  color:#888;
+  min-width:80px;
+  text-align:right;
+}
+
+/* =========================
+   OUTPUT EFFECT
+========================= */
+
+#effectLayer{
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  z-index:100;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  opacity:0;
+}
+
+#effectLayer.show{
+  animation:effectFade .9s ease-out;
+}
+
+.effectText{
+  font-family:
+    "Bodoni 72",
+    "Times New Roman",
+    "Yu Mincho",
+    serif;
+
+  font-size:clamp(90px,17vw,220px);
+  font-weight:900;
+  letter-spacing:4px;
+  text-shadow:
+    0 0 15px #000,
+    0 0 35px #000;
+  transform:scale(.5);
+}
+
+#effectLayer.show .effectText{
+  animation:effectPop .9s cubic-bezier(.1,.8,.2,1);
+}
+
+@keyframes effectPop{
+  0%{
+    transform:scale(.3);
+    opacity:0;
+  }
+
+  25%{
+    transform:scale(1.15);
+    opacity:1;
+  }
+
+  55%{
+    transform:scale(1);
+    opacity:1;
+  }
+
+  100%{
+    transform:scale(1.08);
+    opacity:0;
+  }
+}
+
+@keyframes effectFade{
+  0%{opacity:1}
+  75%{opacity:1}
+  100%{opacity:0}
+}
+
+/* =========================
+   PLAYER CHANGE
+========================= */
+
+#playerChange{
+  position:fixed;
+  inset:0;
+  z-index:200;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  background:rgba(0,0,0,.8);
+  pointer-events:none;
+}
+
+#playerChange.show{
+  display:flex;
+}
+
+.changeText{
+  font-size:clamp(50px,10vw,130px);
+  font-weight:900;
+  letter-spacing:8px;
+  animation:changeIn .8s ease-out;
+}
+
+@keyframes changeIn{
+  0%{
+    opacity:0;
+    transform:scale(.7);
+  }
+
+  40%{
+    opacity:1;
+    transform:scale(1.08);
+  }
+
+  100%{
+    opacity:0;
+    transform:scale(1);
+  }
+}
+
+/* =========================
+   AUDIO SETTINGS
+========================= */
+
+.audioSettings{
+  position:fixed;
+  right:20px;
+  top:20px;
+  z-index:300;
+}
+
+.audioButton{
+  width:58px;
+  height:58px;
+  border-radius:50%;
+  border:1px solid #444;
+  background:#161616;
+  font-size:25px;
+  cursor:pointer;
+}
+
+.audioPanel{
+  position:absolute;
+  right:0;
+  top:68px;
+  width:min(370px,90vw);
+  padding:18px;
+  background:#151515;
+  border:1px solid #333;
+  border-radius:12px;
+  display:none;
+  box-shadow:0 15px 50px #000;
+}
+
+.audioPanel.open{
+  display:block;
+}
+
+.audioPanel h3{
+  margin:0 0 15px;
+}
+
+.audioItem{
+  padding:10px 0;
+  border-bottom:1px solid #292929;
+}
+
+.audioItem label{
+  display:block;
+  margin-bottom:7px;
+  color:#bbb;
+}
+
+.audioItem input{
+  width:100%;
+  font-size:13px;
+}
+
+.audioStatus{
+  margin-top:12px;
+  color:#777;
+  font-size:13px;
+}
+
+/* =========================
+   SMALL SCREEN
+========================= */
+
+@media(max-width:600px){
+
+  .roomButtons{
+    gap:10px;
+  }
+
+  .roomButtons button,
+  .roleButtons button{
+    min-height:78px;
+    font-size:20px;
+  }
+
+  .inputHeader{
+    height:78px;
+    padding:6px 10px;
+  }
+
+  .turnInfo strong,
+  .throwInfo strong{
+    font-size:29px;
+  }
+
+  .currentPlayer strong{
+    font-size:20px;
+  }
+
+  .currentPlayer small,
+  .turnInfo small,
+  .throwInfo small{
+    font-size:10px;
+  }
+
+  .boardWrap{
+    width:96vw;
+    height:96vw;
+  }
+
+  .outputHeader{
+    min-height:145px;
+  }
+
+  .outputLastScore{
+    right:12px;
+    bottom:8px;
+    font-size:14px;
+  }
+
+  .outputMain{
+    padding:10px;
+  }
+
+  .playerList.fourOrMore{
+    grid-template-columns:1fr 1fr;
+    gap:7px;
+  }
+
+  .playerRow{
+    grid-template-columns:35px 1fr auto;
+    gap:8px;
+    padding:8px 12px;
+    min-height:70px;
+  }
+
+  .playerTurnScore{
+    display:none;
+  }
+
+  .playerTotal{
+    min-width:80px;
+    font-size:40px;
+  }
+
+  .playerName{
+    font-size:22px;
+  }
+
+  .playerNo{
+    font-size:16px;
+  }
+
+  .topPrayer{
+    display:block;
+    width:max-content;
+    margin-left:0;
+    margin-top:3px;
+  }
+
+  .historyBox{
+    margin-bottom:10px;
+  }
+
+  .historyItem{
+    grid-template-columns:1fr auto;
+    gap:8px;
+    padding:8px 12px;
+  }
+
+  .historyPlayer{
+    font-size:15px;
+  }
+
+  .historyScore{
+    font-size:22px;
+  }
+
+  .historyLabel{
+    grid-column:2;
+    font-size:12px;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<!-- =========================
+     START
+========================= -->
+
+<div id="startScreen">
+
+  <div class="title">DARTS</div>
+
+  <div class="roomSelect" id="roomSelect">
+
+    <div class="roomSelectTitle">
+      SELECT DARTS ROOM
+    </div>
+
+    <div class="roomButtons">
+
+      <button
+        id="room1Button"
+        type="button">
+        ダーツルーム1
+      </button>
+
+      <button
+        id="room2Button"
+        type="button">
+        ダーツルーム2
+      </button>
+
+    </div>
+
+  </div>
+
+
+  <div class="roleSelect" id="roleSelect">
+
+    <div class="roleSelectTitle">
+      SELECT MODE
+    </div>
+
+    <div class="roleButtons">
+
+      <button
+        id="inputButton"
+        type="button">
+        INPUT
+      </button>
+
+      <button
+        id="outputButton"
+        type="button">
+        OUTPUT
+      </button>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+<!-- =========================
+     INPUT
+========================= -->
+
+<div id="inputScreen" class="screen">
+
+  <div class="inputHeader">
+
+    <div class="turnInfo">
+      <small>REMAINING TURNS</small>
+      <strong id="remainingTurns">10</strong>
+    </div>
+
+    <div class="currentPlayer">
+      <small>CURRENT PLAYER</small>
+      <strong id="inputPlayerName">PLAYER 1</strong>
+    </div>
+
+    <div class="throwInfo">
+      <small>REMAINING THROWS</small>
+      <strong id="remainingThrows">3</strong>
+    </div>
+
+  </div>
+
+  <div class="inputMain">
+
+    <div class="inputMenu">
+
+      <button
+        class="menuButton"
+        id="menuButton"
+        type="button">
+        ☰
+      </button>
+
+      <div
+        class="menuPanel"
+        id="menuPanel">
+
+        <button
+          id="addPlayerButton"
+          type="button">
+          ＋ プレイヤー追加
+        </button>
+
+        <button
+          id="deletePlayerButton"
+          type="button">
+          − 現在のプレイヤー削除
+        </button>
+
+        <button
+          id="resetButton"
+          type="button">
+          スコアリセット
+        </button>
+
+        <div class="turnSetting">
+          最大ターン数
+          <input
+            id="turnLimitInput"
+            type="number"
+            min="1"
+            max="99"
+            value="10">
+        </div>
+
+        <button
+          id="applyTurnButton"
+          type="button">
+          ターン数を変更
+        </button>
+
+      </div>
+
+    </div>
+
+    <div class="boardWrap">
+
+      <svg
+        id="dartboard"
+        viewBox="0 0 300 300"
+        preserveAspectRatio="xMidYMid meet"
+        xmlns="http://www.w3.org/2000/svg">
+
+        <g id="boardSegments"></g>
+        <g id="boardNumbers"></g>
+        <g id="hitMarkers"></g>
+
+      </svg>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+<!-- =========================
+     OUTPUT
+========================= -->
+
+<div id="outputScreen" class="screen">
+
+  <div class="outputHeader">
+
+    <div class="label">
+      CURRENT PLAYER
+    </div>
+
+    <div
+      class="outputCurrentPlayer"
+      id="outputCurrentPlayer">
+      PLAYER 1
+    </div>
+
+    <div
+      class="outputCurrentScore"
+      id="outputCurrentScore">
+      0
+    </div>
+
+    <div
+      class="outputLastScore"
+      id="outputLastScore">
+      —
+    </div>
+
+  </div>
+
+  <div class="outputMain">
+
+    <div class="historyBox">
+
+      <div class="historyTitle">
+        THROW HISTORY
+      </div>
+
+      <div
+        class="historyList"
+        id="historyList">
+      </div>
+
+    </div>
+
+    <div
+      class="playerList"
+      id="playerList">
+    </div>
+
+  </div>
+
+</div>
+
+
+<!-- =========================
+     EFFECT
+========================= -->
+
+<div id="effectLayer">
+
+  <div
+    class="effectText"
+    id="effectText">
+  </div>
+
+</div>
+
+
+<div id="playerChange">
+
+  <div class="changeText">
+    PLAYER CHANGE
+  </div>
+
+</div>
+
+
+<!-- =========================
+     AUDIO
+========================= -->
+
+<div
+  class="audioSettings"
+  id="audioSettings"
+  style="display:none">
+
+  <button
+    class="audioButton"
+    id="audioButton"
+    type="button">
+    🔊
+  </button>
+
+  <div
+    class="audioPanel"
+    id="audioPanel">
+
+    <h3>音声設定</h3>
+
+    <div class="audioItem">
+      <label>通常得点</label>
+      <input
+        type="file"
+        id="audioNormal"
+        accept="audio/*">
+    </div>
+
+    <div class="audioItem">
+      <label>BULL</label>
+      <input
+        type="file"
+        id="audioBull"
+        accept="audio/*">
+    </div>
+
+    <div class="audioItem">
+      <label>TRIPLE</label>
+      <input
+        type="file"
+        id="audioTriple"
+        accept="audio/*">
+    </div>
+
+    <div class="audioItem">
+      <label>DOUBLE</label>
+      <input
+        type="file"
+        id="audioDouble"
+        accept="audio/*">
+    </div>
+
+    <div class="audioItem">
+      <label>PLAYER CHANGE</label>
+      <input
+        type="file"
+        id="audioChange"
+        accept="audio/*">
+    </div>
+
+    <div
+      class="audioStatus"
+      id="audioStatus">
+      音声ファイルを選択してください
+    </div>
+
+  </div>
+
+</div>
+
+
+<script>
+/* =========================================================
+   BASIC
+========================================================= */
+
+const startScreen =
+  document.getElementById("startScreen");
+
+const inputScreen =
+  document.getElementById("inputScreen");
+
+const outputScreen =
+  document.getElementById("outputScreen");
+
+let selectedRole = null;
+let roomName = "";
+
+let gameState = null;
+
+let isFirebaseReady = false;
+let db = null;
+let roomRef = null;
+
+let firebaseUnsubscribe = null;
+
+let turnTransitioning = false;
+
+
+/* =========================================================
+   START SCREEN
+   Firebaseとは完全に独立
+========================================================= */
+
+const roomSelect =
+  document.getElementById("roomSelect");
+
+const roleSelect =
+  document.getElementById("roleSelect");
+
+const room1Button =
+  document.getElementById("room1Button");
+
+const room2Button =
+  document.getElementById("room2Button");
+
+const inputButton =
+  document.getElementById("inputButton");
+
+const outputButton =
+  document.getElementById("outputButton");
+
+
+let selectedRoom = null;
+
+
+/*
+  ルーム選択
+*/
+
+function selectRoom(room){
+
+  selectedRoom = room;
+  roomName = room;
+
+  room1Button.classList.remove("selected");
+  room2Button.classList.remove("selected");
+
+  if(room === "ダーツルーム1"){
+    room1Button.classList.add("selected");
+  }
+
+  if(room === "ダーツルーム2"){
+    room2Button.classList.add("selected");
+  }
+
+  roomSelect.style.display = "none";
+  roleSelect.style.display = "flex";
+
+}
+
+
+/*
+  INPUT / OUTPUT選択
+*/
+
+function selectRole(role){
+
+  if(!selectedRoom){
+    return;
+  }
+
+  selectedRole = role;
+
+  /*
+    ここで初めてゲーム画面へ移動する。
+    Firebaseの状態には依存しない。
+  */
+
+  if(role === "input"){
+
+    showScreen("input");
+
+    buildDartboard();
+
+    initializeInput();
+
+  }
+
+  if(role === "output"){
+
+    showScreen("output");
+
+    document
+      .getElementById("audioSettings")
+      .style.display = "block";
+
+    initializeOutput();
+
+  }
+
+}
+
+
+/*
+  ルームボタン
+*/
+
+room1Button.onclick = function(event){
+
+  event.preventDefault();
+  event.stopPropagation();
+
+  selectRoom("ダーツルーム1");
+
+};
+
+
+room2Button.onclick = function(event){
+
+  event.preventDefault();
+  event.stopPropagation();
+
+  selectRoom("ダーツルーム2");
+
+};
+
+
+/*
+  モードボタン
+*/
+
+inputButton.onclick = function(event){
+
+  event.preventDefault();
+  event.stopPropagation();
+
+  selectRole("input");
+
+};
+
+
+outputButton.onclick = function(event){
+
+  event.preventDefault();
+  event.stopPropagation();
+
+  selectRole("output");
+
+};
+
+
+/* =========================================================
+   SCREEN SWITCH
+========================================================= */
+
+function showScreen(screen){
+
+  startScreen.style.display = "none";
+
+  inputScreen.classList.remove("active");
+  outputScreen.classList.remove("active");
+
+  if(screen === "input"){
+    inputScreen.classList.add("active");
+  }
+
+  if(screen === "output"){
+    outputScreen.classList.add("active");
+  }
+
+}
+
+
+/* =========================================================
+   DARTBOARD
+========================================================= */
+
+const svg =
+  document.getElementById("dartboard");
+
+const segmentLayer =
+  document.getElementById("boardSegments");
+
+const numberLayer =
+  document.getElementById("boardNumbers");
+
+const hitLayer =
+  document.getElementById("hitMarkers");
+
+const CX = 150;
+const CY = 150;
+
+const OUTER_RADIUS = 135;
+
+
+/*
+  色付き部分を押しやすくするため、
+  トリプル・ダブルのリングを拡大。
+
+  見た目上の範囲も当たり判定も同じ値を使用。
+*/
+
+const DOUBLE_IN = 112;
+const DOUBLE_OUT = 133;
+
+const TRIPLE_IN = 63;
+const TRIPLE_OUT = 84;
+
+const OUTER_BULL = 22;
+const INNER_BULL = 11;
+
+
+/*
+  実際のダーツボードの番号配置。
+
+  上から時計回り：
+  20 → 1 → 18 → 4 → ...
+*/
+
+const numbers = [
+  20,1,18,4,13,6,10,15,2,17,
+  3,19,7,16,8,11,14,9,12,5
+];
+
+
+function polarPoint(radius,degrees){
+
+  const rad =
+    degrees * Math.PI / 180;
+
+  return {
+    x:
+      CX +
+      radius *
+      Math.sin(rad),
+
+    y:
+      CY -
+      radius *
+      Math.cos(rad)
+  };
+
+}
+
+
+function wedgePath(r1,r2,a1,a2){
+
+  const p1 =
+    polarPoint(r2,a1);
+
+  const p2 =
+    polarPoint(r2,a2);
+
+  const p3 =
+    polarPoint(r1,a2);
+
+  const p4 =
+    polarPoint(r1,a1);
+
+  return `
+    M ${p1.x} ${p1.y}
+    A ${r2} ${r2} 0 0 1 ${p2.x} ${p2.y}
+    L ${p3.x} ${p3.y}
+    A ${r1} ${r1} 0 0 0 ${p4.x} ${p4.y}
+    Z
+  `;
+
+}
+
+
+function buildDartboard(){
+
+  segmentLayer.innerHTML = "";
+  numberLayer.innerHTML = "";
+  hitLayer.innerHTML = "";
+
+
+  for(let i=0;i<20;i++){
+
+    const centerAngle =
+      i * 18;
+
+    const a1 =
+      centerAngle - 9;
+
+    const a2 =
+      centerAngle + 9;
+
+
+    /* =========================
+       BASE
+    ========================= */
+
+    const base =
+      document.createElementNS(
+        "http://www.w3.org/2000/svg",
+        "path"
+      );
+
+    base.setAttribute(
+      "d",
+      wedgePath(
+        0,
+        OUTER_RADIUS,
+        a1,
+        a2
+      )
+    );
+
+    base.setAttribute(
+      "fill",
+      i % 2 === 0
+        ? "#eeeeee"
+        : "#111111"
+    );
+
+    base.classList.add(
+      "boardSegment"
+    );
+
+    segmentLayer.appendChild(base);
+
+
+    /* =========================
+       TRIPLE
+    ========================= */
+
+    const triple =
+      document.createElementNS(
+        "http://www.w3.org/2000/svg",
+        "path"
+      );
+
+    triple.setAttribute(
+      "d",
+      wedgePath(
+        TRIPLE_IN,
+        TRIPLE_OUT,
+        a1,
+        a2
+      )
+    );
+
+    triple.setAttribute(
+      "fill",
+      i % 2 === 0
+        ? "#671919"
+        : "#174c37"
+    );
+
+    triple.classList.add(
+      "boardSegment"
+    );
+
+    segmentLayer.appendChild(triple);
+
+
+    /* =========================
+       DOUBLE
+    ========================= */
+
+    const doubleRing =
+      document.createElementNS(
+        "http://www.w3.org/2000/svg",
+        "path"
+      );
+
+    doubleRing.setAttribute(
+      "d",
+      wedgePath(
+        DOUBLE_IN,
+        DOUBLE_OUT,
+        a1,
+        a2
+      )
+    );
+
+    doubleRing.setAttribute(
+      "fill",
+      i % 2 === 0
+        ? "#671919"
+        : "#174c37"
+    );
+
+    doubleRing.classList.add(
+      "boardSegment"
+    );
+
+    segmentLayer.appendChild(
+      doubleRing
+    );
+
+
+    /* =========================
+       NUMBERS
+    ========================= */
+
+    const p =
+      polarPoint(
+        143,
+        centerAngle
+      );
+
+    const text =
+      document.createElementNS(
+        "http://www.w3.org/2000/svg",
+        "text"
+      );
+
+    text.setAttribute(
+      "x",
+      p.x
+    );
+
+    text.setAttribute(
+      "y",
+      p.y
+    );
+
+    text.textContent =
+      numbers[i];
+
+    text.classList.add(
+      "boardNumber"
+    );
+
+    numberLayer.appendChild(
+      text
+    );
+
+  }
+
+
+  /* =========================
+     BULL
+  ========================= */
+
+  const outerBull =
+    document.createElementNS(
+      "http://www.w3.org/2000/svg",
+      "circle"
+    );
+
+  outerBull.setAttribute(
+    "cx",
+    CX
+  );
+
+  outerBull.setAttribute(
+    "cy",
+    CY
+  );
+
+  outerBull.setAttribute(
+    "r",
+    OUTER_BULL
+  );
+
+  outerBull.setAttribute(
+    "fill",
+    "#174c37"
+  );
+
+  segmentLayer.appendChild(
+    outerBull
+  );
+
+
+  const innerBull =
+    document.createElementNS(
+      "http://www.w3.org/2000/svg",
+      "circle"
+    );
+
+  innerBull.setAttribute(
+    "cx",
+    CX
+  );
+
+  innerBull.setAttribute(
+    "cy",
+    CY
+  );
+
+  innerBull.setAttribute(
+    "r",
+    INNER_BULL
+  );
+
+  innerBull.setAttribute(
+    "fill",
+    "#671919"
+  );
+
+  segmentLayer.appendChild(
+    innerBull
+  );
+
+}
+
+
+/* =========================================================
+   SVG COORDINATE
+========================================================= */
+
+function getBoardPoint(event){
+
+  const rect =
+    svg.getBoundingClientRect();
+
+  const scale =
+    Math.min(
+      rect.width / 300,
+      rect.height / 300
+    );
+
+  const renderedWidth =
+    300 * scale;
+
+  const renderedHeight =
+    300 * scale;
+
+  const offsetX =
+    (rect.width - renderedWidth) / 2;
+
+  const offsetY =
+    (rect.height - renderedHeight) / 2;
+
+  const x =
+    (
+      event.clientX -
+      rect.left -
+      offsetX
+    ) / scale;
+
+  const y =
+    (
+      event.clientY -
+      rect.top -
+      offsetY
+    ) / scale;
+
+  return {
+    x:x,
+    y:y
+  };
+
+}
+
+
+/* =========================================================
+   SCORE
+========================================================= */
+
+function calculateScore(x,y){
+
+  const dx =
+    x - CX;
+
+  const dy =
+    y - CY;
+
+  const radius =
+    Math.sqrt(
+      dx * dx +
+      dy * dy
+    );
+
+
+  if(radius > OUTER_RADIUS){
+    return null;
+  }
+
+
+  if(radius <= INNER_BULL){
+
+    return {
+      score:50,
+      label:"BULL",
+      type:"bull"
+    };
+
+  }
+
+
+  if(radius <= OUTER_BULL){
+
+    return {
+      score:25,
+      label:"25",
+      type:"outerBull"
+    };
+
+  }
+
+
+  /*
+    角度を計算。
+
+    0度 = 真上。
+    ここを基準に18度ごとに番号を配置する。
+  */
+
+  let angle =
+    Math.atan2(
+      dx,
+      -dy
+    ) *
+    180 /
+    Math.PI;
+
+  if(angle < 0){
+    angle += 360;
+  }
+
+
+  /*
+    各番号の中心を基準にする。
+  */
+
+  const index =
+    Math.floor(
+      (angle + 9) / 18
+    ) % 20;
+
+  const number =
+    numbers[index];
+
+
+  if(
+    radius >= TRIPLE_IN &&
+    radius <= TRIPLE_OUT
+  ){
+
+    return {
+      score:number * 3,
+      label:"T" + (number * 3),
+      type:"triple",
+      number:number
+    };
+
+  }
+
+
+  if(
+    radius >= DOUBLE_IN &&
+    radius <= DOUBLE_OUT
+  ){
+
+    return {
+      score:number * 2,
+      label:"D" + (number * 2),
+      type:"double",
+      number:number
+    };
+
+  }
+
+
+  return {
+    score:number,
+    label:String(number),
+    type:"single",
+    number:number
+  };
+
+}
+
+
+/* =========================================================
+   HIT MARKER
+========================================================= */
+
+function addHitMarker(x,y){
+
+  const marker =
+    document.createElementNS(
+      "http://www.w3.org/2000/svg",
+      "circle"
+    );
+
+  marker.setAttribute(
+    "cx",
+    x
+  );
+
+  marker.setAttribute(
+    "cy",
+    y
+  );
+
+  marker.setAttribute(
+    "r",
+    "5"
+  );
+
+  marker.setAttribute(
+    "fill",
+    "white"
+  );
+
+  marker.setAttribute(
+    "stroke",
+    "black"
+  );
+
+  marker.setAttribute(
+    "stroke-width",
+    "2"
+  );
+
+  marker.classList.add(
+    "hitMarker"
+  );
+
+  hitLayer.appendChild(
+    marker
+  );
+
+}
+
+
+/* =========================================================
+   BOARD INPUT
+========================================================= */
+
+svg.addEventListener(
+  "pointerdown",
+  function(event){
+
+    event.preventDefault();
+
+    if(!gameState){
+      return;
+    }
+
+    if(gameState.finished){
+      return;
+    }
+
+    if(turnTransitioning){
+      return;
+    }
+
+    const point =
+      getBoardPoint(event);
+
+    const result =
+      calculateScore(
+        point.x,
+        point.y
+      );
+
+    if(!result){
+      return;
+    }
+
+    addHitMarker(
+      point.x,
+      point.y
+    );
+
+    processThrow(
+      result.score,
+      result.label,
+      result.type
+    );
+
+  }
+);
+
+
+/* =========================================================
+   INITIAL STATE
+========================================================= */
+
+function createInitialState(){
+
+  return {
+
+    gameType:"countup",
+
+    maxTurns:10,
+
+    currentTurn:1,
+
+    players:{
+      p1:{
+        name:"PLAYER 1",
+        score:0,
+        turnScore:0,
+        order:0
+      }
+    },
+
+    history:[],
+
+    state:{
+      currentPlayerId:"p1",
+      throwNumber:0,
+      lastScore:null,
+      lastLabel:"",
+      lastType:"",
+      changeId:0,
+      effectId:0,
+      finished:false
+    }
+
+  };
+
+}
+
+
+/* =========================================================
+   INPUT INIT
+========================================================= */
+
+async function initializeInput(){
+
+  buildDartboard();
+
+  await waitForFirebase();
+
+  if(!isFirebaseReady){
+
+    alert(
+      "Firebaseに接続できませんでした"
+    );
+
+    return;
+  }
+
+  await startFirebaseSync();
+
+}
+
+
+/* =========================================================
+   OUTPUT INIT
+========================================================= */
+
+async function initializeOutput(){
+
+  await waitForFirebase();
+
+  if(!isFirebaseReady){
+
+    alert(
+      "Firebaseに接続できませんでした"
+    );
+
+    return;
+  }
+
+  await startFirebaseSync();
+
+}
+
+
+/* =========================================================
+   WAIT FIREBASE
+========================================================= */
+
+function waitForFirebase(){
+
+  return new Promise(
+    resolve=>{
+
+      if(isFirebaseReady){
+
+        resolve();
+        return;
+
+      }
+
+      let count = 0;
+
+      const timer =
+        setInterval(
+          ()=>{
+
+            count++;
+
+            if(isFirebaseReady){
+
+              clearInterval(timer);
+              resolve();
+
+            }
+
+            if(count > 100){
+
+              clearInterval(timer);
+              resolve();
+
+            }
+
+          },
+          100
+        );
+
+    }
+  );
+
+}
+
+
+/* =========================================================
+   FIREBASE SYNC
+========================================================= */
+
+async function startFirebaseSync(){
+
+  if(!roomName){
+    return;
+  }
+
+  roomRef =
+    window.firebaseRef(
+      db,
+      "rooms/" +
+      encodeURIComponent(roomName)
+    );
+
+
+  if(firebaseUnsubscribe){
+    firebaseUnsubscribe();
+    firebaseUnsubscribe = null;
+  }
+
+
+  firebaseUnsubscribe =
+    window.firebaseOnValue(
+      roomRef,
+      snapshot=>{
+
+        const data =
+          snapshot.val();
+
+
+        if(!data){
+
+          if(selectedRole === "input"){
+
+            const initial =
+              createInitialState();
+
+            window.firebaseSet(
+              roomRef,
+              initial
+            );
+
+          }
+
+          return;
+
+        }
+
+
+        gameState = data;
+
+        updateAllUI();
+
+      }
+    );
+
+}
+
+
+/* =========================================================
+   PROCESS THROW
+========================================================= */
+
+async function processThrow(
+  score,
+  label,
+  type
+){
+
+  if(!gameState){
+    return;
+  }
+
+  if(gameState.finished){
+    return;
+  }
+
+  if(turnTransitioning){
+    return;
+  }
+
+
+  const currentId =
+    gameState.state.currentPlayerId;
+
+  const player =
+    gameState.players[currentId];
+
+  if(!player){
+    return;
+  }
+
+
+  const newScore =
+    Number(player.score || 0)
+    + score;
+
+  const newTurnScore =
+    Number(player.turnScore || 0)
+    + score;
+
+  const throwNumber =
+    Number(
+      gameState.state.throwNumber || 0
+    ) + 1;
+
+
+  const history =
+    Array.isArray(gameState.history)
+      ? [...gameState.history]
+      : [];
+
+
+  history.push({
+
+    playerId:currentId,
+
+    playerName:player.name,
+
+    score:score,
+
+    label:label,
+
+    type:type,
+
+    turn:Number(
+      gameState.currentTurn || 1
+    ),
+
+    throwNumber:throwNumber,
+
+    timestamp:Date.now()
+
+  });
+
+
+  if(history.length > 100){
+
+    history.splice(
+      0,
+      history.length - 100
+    );
+
+  }
+
+
+  const effectId =
+    Date.now() +
+    Math.floor(
+      Math.random() * 1000
+    );
+
+
+  const updates = {};
+
+
+  updates[
+    "players/" +
+    currentId +
+    "/score"
+  ] =
+    newScore;
+
+
+  updates[
+    "players/" +
+    currentId +
+    "/turnScore"
+  ] =
+    newTurnScore;
+
+
+  updates[
+    "state/throwNumber"
+  ] =
+    throwNumber;
+
+
+  updates[
+    "state/lastScore"
+  ] =
+    score;
+
+
+  updates[
+    "state/lastLabel"
+  ] =
+    label;
+
+
+  updates[
+    "state/lastType"
+  ] =
+    type;
+
+
+  updates[
+    "state/effectId"
+  ] =
+    effectId;
+
+
+  updates[
+    "history"
+  ] =
+    history;
+
+
+  if(throwNumber >= 3){
+
+    turnTransitioning = true;
+
+  }
+
+
+  await window.firebaseUpdate(
+    roomRef,
+    updates
+  );
+
+
+  if(throwNumber >= 3){
+
+    setTimeout(
+      ()=>{
+
+        advancePlayer(
+          currentId
+        );
+
+      },
+      1000
+    );
+
+  }
+
+}
+
+
+/* =========================================================
+   ADVANCE PLAYER
+========================================================= */
+
+async function advancePlayer(
+  previousPlayerId
+){
+
+  if(!gameState){
+
+    turnTransitioning = false;
+    return;
+
+  }
+
+
+  if(gameState.finished){
+
+    turnTransitioning = false;
+    return;
+
+  }
+
+
+  const players =
+    Object.entries(
+      gameState.players || {}
+    )
+    .sort(
+      (a,b)=>
+        Number(a[1].order || 0)
+        -
+        Number(b[1].order || 0)
+    );
+
+
+  if(players.length === 0){
+
+    turnTransitioning = false;
+    return;
+
+  }
+
+
+  const currentIndex =
+    players.findIndex(
+      ([id]) =>
+        id === previousPlayerId
+    );
+
+
+  if(currentIndex < 0){
+
+    turnTransitioning = false;
+    return;
+
+  }
+
+
+  let nextIndex =
+    currentIndex + 1;
+
+  let nextTurn =
+    Number(
+      gameState.currentTurn || 1
+    );
+
+
+  if(nextIndex >= players.length){
+
+    nextIndex = 0;
+    nextTurn++;
+
+  }
+
+
+  if(
+    nextTurn >
+    Number(
+      gameState.maxTurns || 10
+    )
+  ){
+
+    await window.firebaseUpdate(
+      roomRef,
+      {
+        "state/finished":true
+      }
+    );
+
+    turnTransitioning = false;
+
+    return;
+
+  }
+
+
+  const nextPlayerId =
+    players[nextIndex][0];
+
+
+  const changeId =
+    Date.now() +
+    Math.floor(
+      Math.random() * 1000
+    );
+
+
+  await window.firebaseUpdate(
+    roomRef,
+    {
+
+      "currentTurn":
+        nextTurn,
+
+      "state/currentPlayerId":
+        nextPlayerId,
+
+      "state/throwNumber":
+        0,
+
+      "players/" +
+        nextPlayerId +
+        "/turnScore":
+        0,
+
+      "state/changeId":
+        changeId
+
+    }
+  );
+
+
+  setTimeout(
+    ()=>{
+      turnTransitioning = false;
+    },
+    100
+  );
+
+}
+
+
+/* =========================================================
+   ADD PLAYER
+========================================================= */
+
+document
+  .getElementById("addPlayerButton")
+  .addEventListener(
+    "click",
+    async function(){
+
+      if(!gameState){
+        return;
+      }
+
+
+      const players =
+        gameState.players || {};
+
+      const ids =
+        Object.keys(players);
+
+
+      const id =
+        "p" +
+        Date.now();
+
+
+      await window.firebaseUpdate(
+        roomRef,
+        {
+
+          ["players/" + id]:{
+
+            name:
+              "PLAYER " +
+              (ids.length + 1),
+
+            score:0,
+
+            turnScore:0,
+
+            order:ids.length
+
+          }
+
+        }
+      );
+
+    }
+  );
+
+
+/* =========================================================
+   DELETE PLAYER
+========================================================= */
+
+document
+  .getElementById("deletePlayerButton")
+  .addEventListener(
+    "click",
+    async function(){
+
+      if(!gameState){
+        return;
+      }
+
+
+      const players =
+        Object.entries(
+          gameState.players || {}
+        )
+        .sort(
+          (a,b)=>
+            Number(a[1].order || 0)
+            -
+            Number(b[1].order || 0)
+        );
+
+
+      if(players.length <= 1){
+
+        alert(
+          "プレイヤーは1人以上必要です"
+        );
+
+        return;
+
+      }
+
+
+      const currentId =
+        gameState.state.currentPlayerId;
+
+
+      const newPlayers = {};
+
+      let order = 0;
+
+
+      for(
+        const [id,p]
+        of players
+      ){
+
+        if(id === currentId){
+          continue;
+        }
+
+
+        newPlayers[id] = {
+
+          ...p,
+
+          order:order++
+
+        };
+
+      }
+
+
+      const firstId =
+        Object.keys(
+          newPlayers
+        )[0];
+
+
+      await window.firebaseUpdate(
+        roomRef,
+        {
+
+          players:newPlayers,
+
+          "state/currentPlayerId":
+            firstId,
+
+          "state/throwNumber":
+            0
+
+        }
+      );
+
+
+      hitLayer.innerHTML = "";
+
+    }
+  );
+
+
+/* =========================================================
+   RESET
+========================================================= */
+
+document
+  .getElementById("resetButton")
+  .addEventListener(
+    "click",
+    async function(){
+
+      if(!gameState){
+        return;
+      }
+
+
+      const players = {};
+
+
+      for(
+        const [id,p]
+        of Object.entries(
+          gameState.players || {}
+        )
+      ){
+
+        players[id] = {
+
+          ...p,
+
+          score:0,
+
+          turnScore:0
+
+        };
+
+      }
+
+
+      const first =
+        Object.entries(players)
+        .sort(
+          (a,b)=>
+            Number(a[1].order || 0)
+            -
+            Number(b[1].order || 0)
+        )[0];
+
+
+      await window.firebaseUpdate(
+        roomRef,
+        {
+
+          players:players,
+
+          currentTurn:1,
+
+          history:[],
+
+          "state/currentPlayerId":
+            first[0],
+
+          "state/throwNumber":
+            0,
+
+          "state/lastScore":
+            null,
+
+          "state/lastLabel":
+            "",
+
+          "state/lastType":
+            "",
+
+          "state/finished":
+            false,
+
+          "state/changeId":
+            Date.now(),
+
+          "state/effectId":
+            Date.now() + 1
+
+        }
+      );
+
+
+      hitLayer.innerHTML = "";
+
+      turnTransitioning = false;
+
+    }
+  );
+
+
+/* =========================================================
+   TURN LIMIT
+========================================================= */
+
+document
+  .getElementById("applyTurnButton")
+  .addEventListener(
+    "click",
+    async function(){
+
+      if(!gameState){
+        return;
+      }
+
+
+      let value =
+        Number(
+          document.getElementById(
+            "turnLimitInput"
+          ).value
+        );
+
+
+      if(!Number.isFinite(value)){
+        return;
+      }
+
+
+      value =
+        Math.max(
+          1,
+          Math.min(
+            99,
+            value
+          )
+        );
+
+
+      await window.firebaseUpdate(
+        roomRef,
+        {
+          maxTurns:value
+        }
+      );
+
+    }
+  );
+
+
+/* =========================================================
+   INPUT UI
+========================================================= */
+
+function updateInputUI(){
+
+  if(!gameState){
+    return;
+  }
+
+
+  const state =
+    gameState.state;
+
+
+  const player =
+    gameState.players[
+      state.currentPlayerId
+    ];
+
+
+  if(!player){
+    return;
+  }
+
+
+  document.getElementById(
+    "inputPlayerName"
+  ).textContent =
+    player.name;
+
+
+  const throwNumber =
+    Number(
+      state.throwNumber || 0
+    );
+
+
+  document.getElementById(
+    "remainingThrows"
+  ).textContent =
+    Math.max(
+      0,
+      3 - throwNumber
+    );
+
+
+  const currentTurn =
+    Number(
+      gameState.currentTurn || 1
+    );
+
+
+  const maxTurns =
+    Number(
+      gameState.maxTurns || 10
+    );
+
+
+  document.getElementById(
+    "remainingTurns"
+  ).textContent =
+    Math.max(
+      0,
+      maxTurns -
+      currentTurn +
+      1
+    );
+
+}
+
+
+/* =========================================================
+   OUTPUT UI
+========================================================= */
+
+let lastChangeId = 0;
+let lastEffectId = 0;
+let previousEffectId = 0;
+
+
+function updateOutputUI(){
+
+  if(!gameState){
+    return;
+  }
+
+
+  const state =
+    gameState.state;
+
+
+  const currentPlayer =
+    gameState.players[
+      state.currentPlayerId
+    ];
+
+
+  if(!currentPlayer){
+    return;
+  }
+
+
+  document.getElementById(
+    "outputCurrentPlayer"
+  ).textContent =
+    currentPlayer.name;
+
+
+  document.getElementById(
+    "outputCurrentScore"
+  ).textContent =
+    Number(
+      currentPlayer.score || 0
+    );
+
+
+  document.getElementById(
+    "outputLastScore"
+  ).textContent =
+    state.lastLabel || "—";
+
+
+  const list =
+    document.getElementById(
+      "playerList"
+    );
+
+
+  list.innerHTML = "";
+
+
+  const players =
+    Object.entries(
+      gameState.players || {}
+    )
+    .sort(
+      (a,b)=>
+        Number(b[1].score || 0)
+        -
+        Number(a[1].score || 0)
+        ||
+        Number(a[1].order || 0)
+        -
+        Number(b[1].order || 0)
+    );
+
+
+  if(players.length >= 4){
+
+    list.classList.add(
+      "fourOrMore"
+    );
+
+  }else{
+
+    list.classList.remove(
+      "fourOrMore"
+    );
+
+  }
+
+
+  players.forEach(
+    ([id,p],index)=>{
+
+      const row =
+        document.createElement(
+          "div"
+        );
+
+
+      row.className =
+        "playerRow" +
+        (
+          id === state.currentPlayerId
+          ? " current"
+          : ""
+        );
+
+
+      const topLabel =
+        index === 0
+          ? '<span class="topPrayer">TOP Prayer</span>'
+          : "";
+
+
+      row.innerHTML = `
+
+        <div class="playerNo">
+          ${index + 1}
+        </div>
+
+        <div class="playerName">
+          ${escapeHTML(p.name)}
+          ${topLabel}
+        </div>
+
+        <div class="playerTurnScore">
+          +${Number(p.turnScore || 0)}
+        </div>
+
+        <div class="playerTotal">
+          ${Number(p.score || 0)}
+        </div>
+
+      `;
+
+
+      list.appendChild(row);
+
+    }
+  );
+
+
+  updateHistoryUI();
+
+
+  const changeId =
+    Number(
+      state.changeId || 0
+    );
+
+
+  if(
+    changeId &&
+    changeId !== lastChangeId
+  ){
+
+    lastChangeId =
+      changeId;
+
+    showPlayerChange();
+
+  }
+
+
+  const effectId =
+    Number(
+      state.effectId || 0
+    );
+
+
+  if(
+    effectId &&
+    effectId !== lastEffectId
+  ){
+
+    lastEffectId =
+      effectId;
+
+    showScoreEffect(
+      state.lastScore,
+      state.lastType
+    );
+
+  }
+
+
+  handleAudioFromState();
+
+}
+
+
+/* =========================================================
+   HISTORY UI
+========================================================= */
+
+function updateHistoryUI(){
+
+  const historyList =
+    document.getElementById(
+      "historyList"
+    );
+
+
+  historyList.innerHTML = "";
+
+
+  const history =
+    Array.isArray(
+      gameState.history
+    )
+      ? [...gameState.history]
+      : [];
+
+
+  history.reverse();
+
+
+  history.forEach(
+    item=>{
+
+      const row =
+        document.createElement(
+          "div"
+        );
+
+
+      row.className =
+        "historyItem";
+
+
+      row.innerHTML = `
+
+        <div class="historyPlayer">
+          ${escapeHTML(
+            item.playerName || ""
+          )}
+        </div>
+
+        <div class="historyScore">
+          +${Number(item.score || 0)}
+        </div>
+
+        <div class="historyLabel">
+          ${escapeHTML(
+            item.label || ""
+          )}
+        </div>
+
+      `;
+
+
+      historyList.appendChild(row);
+
+    }
+  );
+
+}
+
+
+/* =========================================================
+   EFFECT
+========================================================= */
+
+function showScoreEffect(
+  score,
+  type
+){
+
+  const layer =
+    document.getElementById(
+      "effectLayer"
+    );
+
+  const text =
+    document.getElementById(
+      "effectText"
+    );
+
+
+  if(type === "bull"){
+
+    text.textContent =
+      "BULL";
+
+  }
+
+  else if(type === "outerBull"){
+
+    text.textContent =
+      "25";
+
+  }
+
+  else if(type === "triple"){
+
+    text.textContent =
+      "TRIPLE";
+
+  }
+
+  else if(type === "double"){
+
+    text.textContent =
+      "DOUBLE";
+
+  }
+
+  else{
+
+    text.textContent =
+      "+" + score;
+
+  }
+
+
+  layer.classList.remove(
+    "show"
+  );
+
+
+  void layer.offsetWidth;
+
+
+  layer.classList.add(
+    "show"
+  );
+
+
+  setTimeout(
+    ()=>{
+
+      layer.classList.remove(
+        "show"
+      );
+
+    },
+    1000
+  );
+
+}
+
+
+/* =========================================================
+   PLAYER CHANGE
+========================================================= */
+
+function showPlayerChange(){
+
+  const el =
+    document.getElementById(
+      "playerChange"
+    );
+
+
+  el.classList.remove(
+    "show"
+  );
+
+
+  void el.offsetWidth;
+
+
+  el.classList.add(
+    "show"
+  );
+
+
+  playAudio(
+    "change"
+  );
+
+
+  setTimeout(
+    ()=>{
+
+      el.classList.remove(
+        "show"
+      );
+
+    },
+    900
+  );
+
+}
+
+
+/* =========================================================
+   ESCAPE
+========================================================= */
+
+function escapeHTML(str){
+
+  return String(str)
+
+    .replaceAll(
+      "&",
+      "&amp;"
+    )
+
+    .replaceAll(
+      "<",
+      "&lt;"
+    )
+
+    .replaceAll(
+      ">",
+      "&gt;"
+    )
+
+    .replaceAll(
+      '"',
+      "&quot;"
+    )
+
+    .replaceAll(
+      "'",
+      "&#039;"
+    );
+
+}
+
+
+/* =========================================================
+   MENU
+========================================================= */
+
+document
+  .getElementById("menuButton")
+  .addEventListener(
+    "click",
+    function(){
+
+      document
+        .getElementById("menuPanel")
+        .classList.toggle("open");
+
+    }
+  );
+
+
+/* =========================================================
+   AUDIO
+========================================================= */
+
+const audioFiles = {
+
+  normal:null,
+
+  bull:null,
+
+  triple:null,
+
+  double:null,
+
+  change:null
+
+};
+
+
+const audioElements = {
+
+  normal:new Audio(),
+
+  bull:new Audio(),
+
+  triple:new Audio(),
+
+  double:new Audio(),
+
+  change:new Audio()
+
+};
+
+
+function setupAudioInput(
+  id,
+  key
+){
+
+  document
+    .getElementById(id)
+    .addEventListener(
+      "change",
+      function(event){
+
+        const file =
+          event.target.files[0];
+
+
+        if(!file){
+          return;
+        }
+
+
+        if(audioFiles[key]){
+
+          URL.revokeObjectURL(
+            audioFiles[key]
+          );
+
+        }
+
+
+        const url =
+          URL.createObjectURL(
+            file
+          );
+
+
+        audioFiles[key] =
+          url;
+
+
+        audioElements[key].src =
+          url;
+
+
+        audioElements[key].load();
+
+
+        document.getElementById(
+          "audioStatus"
+        ).textContent =
+          key.toUpperCase() +
+          " の音声を設定しました";
+
+      }
+    );
+
+}
+
+
+setupAudioInput(
+  "audioNormal",
+  "normal"
+);
+
+setupAudioInput(
+  "audioBull",
+  "bull"
+);
+
+setupAudioInput(
+  "audioTriple",
+  "triple"
+);
+
+setupAudioInput(
+  "audioDouble",
+  "double"
+);
+
+setupAudioInput(
+  "audioChange",
+  "change"
+);
+
+
+/* =========================================================
+   PLAY AUDIO
+========================================================= */
+
+function playAudio(type){
+
+  if(
+    selectedRole !== "output"
+  ){
+    return;
+  }
+
+
+  const audio =
+    audioElements[type];
+
+
+  if(
+    !audio ||
+    !audio.src
+  ){
+    return;
+  }
+
+
+  try{
+
+    audio.pause();
+
+    audio.currentTime = 0;
+
+    const promise =
+      audio.play();
+
+
+    if(promise){
+
+      promise.catch(
+        ()=>{}
+      );
+
+    }
+
+  }catch(e){}
+
+}
+
+
+/* =========================================================
+   AUDIO BUTTON
+========================================================= */
+
+document
+  .getElementById("audioButton")
+  .addEventListener(
+    "click",
+    function(){
+
+      document
+        .getElementById("audioPanel")
+        .classList.toggle("open");
+
+    }
+  );
+
+
+/* =========================================================
+   AUDIO UNLOCK
+========================================================= */
+
+document
+  .getElementById("outputScreen")
+  .addEventListener(
+    "pointerdown",
+    function(){
+
+      Object
+        .values(audioElements)
+        .forEach(
+          audio=>{
+
+            if(!audio.src){
+              return;
+            }
+
+
+            audio.play()
+              .then(
+                ()=>{
+
+                  audio.pause();
+
+                  audio.currentTime = 0;
+
+                }
+              )
+              .catch(
+                ()=>{}
+              );
+
+          }
+        );
+
+    },
+    {
+      once:true
+    }
+  );
+
+
+/* =========================================================
+   AUDIO FROM FIREBASE
+========================================================= */
+
+function handleAudioFromState(){
+
+  if(
+    selectedRole !== "output" ||
+    !gameState
+  ){
+    return;
+  }
+
+
+  const state =
+    gameState.state;
+
+
+  const effectId =
+    Number(
+      state.effectId || 0
+    );
+
+
+  if(
+    !effectId ||
+    effectId === previousEffectId
+  ){
+    return;
+  }
+
+
+  previousEffectId =
+    effectId;
+
+
+  if(
+    state.lastType === "bull" ||
+    state.lastType === "outerBull"
+  ){
+
+    playAudio(
+      "bull"
+    );
+
+  }
+
+  else if(
+    state.lastType === "triple"
+  ){
+
+    playAudio(
+      "triple"
+    );
+
+  }
+
+  else if(
+    state.lastType === "double"
+  ){
+
+    playAudio(
+      "double"
+    );
+
+  }
+
+  else{
+
+    playAudio(
+      "normal"
+    );
+
+  }
+
+}
+
+
+/* =========================================================
+   GLOBAL UI
+========================================================= */
+
+function updateAllUI(){
+
+  if(
+    selectedRole === "input"
+  ){
+
+    updateInputUI();
+
+  }
+
+
+  if(
+    selectedRole === "output"
+  ){
+
+    updateOutputUI();
+
+  }
+
+}
+
+</script>
+
+
+<!-- =====================================================
+     FIREBASE
+===================================================== -->
+
+<script type="module">
+
+import {
+  initializeApp
+}
+from
+"https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
+
+import {
+  getDatabase,
+  ref,
+  onValue,
+  set,
+  update
+}
+from
+"https://www.gstatic.com/firebasejs/12.18.0/firebase-database.js";
+
+
+const firebaseConfig = {
+
+  apiKey:
+    "AIzaSyCh1dS522TL9HjGEHk7tCHXFWfJ0F1Qfx0",
+
+  authDomain:
+    "darts-01.firebaseapp.com",
+
+  databaseURL:
+    "https://darts-01-default-rtdb.asia-southeast1.firebasedatabase.app",
+
+  projectId:
+    "darts-01",
+
+  storageBucket:
+    "darts-01.firebasestorage.app",
+
+  messagingSenderId:
+    "936099490830",
+
+  appId:
+    "1:936099490830:web:bc3b39184138acbd1aa05f",
+
+  measurementId:
+    "G-JTX22B0QZQ"
+
+};
+
+
+try{
+
+  const app =
+    initializeApp(
+      firebaseConfig
+    );
+
+
+  const database =
+    getDatabase(app);
+
+
+  window.firebaseDB =
+    database;
+
+  window.firebaseRef =
+    ref;
+
+  window.firebaseOnValue =
+    onValue;
+
+  window.firebaseSet =
+    set;
+
+  window.firebaseUpdate =
+    update;
+
+
+  db =
+    database;
+
+  isFirebaseReady =
+    true;
+
+
+}catch(error){
+
+  console.error(
+    "Firebase initialization error:",
+    error
+  );
+
+  isFirebaseReady =
+    false;
+
+}
+
+</script>
+
+</body>
+</html>
